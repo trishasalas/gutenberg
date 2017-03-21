@@ -58,6 +58,10 @@
 	padding: 0;
 }
 
+.mce-inline-toolbar-grp {
+	position: absolute;
+}
+
 .mce-inline-toolbar-grp .mce-btn {
 	padding: 5px;
 	position: relative;
@@ -391,4 +395,8 @@ div.mce-inline-toolbar-grp.block-toolbar > div.mce-stack-layout {
 	position: absolute;
 	opacity: 0.5;
 	pointer-events: none;
+}
+
+.hidden {
+	visibility: hidden;
 }

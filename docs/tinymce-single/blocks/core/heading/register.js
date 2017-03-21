@@ -10,8 +10,11 @@
 				icon: 'gridicons-heading',
 				text: level,
 				stateSelector: 'h' + level,
-				onClick: function( block, editor ) {
-					editor.formatter.apply( 'h' + level, block );
+				onClick: function( state ) {
+					return {
+						name: 'h' + level,
+						children: state.children
+					};
 				}
 			} );
 		} );
@@ -21,28 +24,18 @@
 		return controls;
 	}
 
-	function toBaseState( oldState ) {
-		var newState = document.createElement( 'P' );
-
-		while ( oldState.firstChild ) {
-			newState.appendChild( oldState.firstChild );
-		}
-
-		oldState.parentNode.replaceChild( newState, oldState );
-
-		return newState;
+	function toBaseState( state ) {
+		return {
+			name: 'p',
+			children: state.children
+		};
 	}
 
-	function fromBaseState( oldState ) {
-		var newState = document.createElement( 'H1' );
-
-		while ( oldState.firstChild ) {
-			newState.appendChild( oldState.firstChild );
-		}
-
-		oldState.parentNode.replaceChild( newState, oldState );
-
-		return newState;
+	function fromBaseState( state ) {
+		return {
+			name: 'h1',
+			children: state.children
+		};
 	}
 
 	wp.blocks.registerBlock( {
@@ -61,7 +54,7 @@
 		fromBaseState: fromBaseState,
 		insert: function() {
 			// Maybe detect best heading based on document outline.
-			return '<h1><br></h1>';
+			return { name: 'h1' };
 		}
 	} );
 

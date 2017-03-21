@@ -44,6 +44,9 @@
 		getControlSettings: function( name ) {
 			return _controls[ name ];
 		},
+		getBlockSettingsByTag: function( tag ) {
+			return this.getBlockSettings( _elementMap[ tag ] );
+		},
 		getBlockSettingsByElement: function( element ) {
 			var id = element.getAttribute( 'data-wp-block-type' );
 
@@ -58,64 +61,6 @@
 		},
 		getControls: function() {
 			return _controls;
-		},
-		getParentBlock: function( node ) {
-			var editor = window.tinyMCE.activeEditor;
-			var rootNode = editor.getBody();
-
-			if ( node === rootNode || ! editor.getBody().contains( node ) ) {
-				return null;
-			}
-
-			while ( node.parentNode !== rootNode ) {
-				node = node.parentNode;
-			}
-
-			return node;
-		},
-		getSelectedBlocks: function() {
-			var editor = window.tinyMCE.activeEditor;
-			var selection = window.getSelection();
-			var startNode = editor.selection.getStart();
-			var endNode = editor.selection.getEnd();
-			var rootNode = editor.getBody();
-			var blocks = [];
-
-			if ( ! startNode || ! editor.getBody().contains( startNode ) ) {
-				return [ rootNode.firstChild ];
-			}
-
-			while ( startNode.parentNode !== rootNode ) {
-				startNode = startNode.parentNode;
-			}
-
-			while ( endNode.parentNode !== rootNode ) {
-				endNode = endNode.parentNode;
-			}
-
-			if ( startNode.compareDocumentPosition( endNode ) & Node.DOCUMENT_POSITION_FOLLOWING ) {
-				while ( startNode ) {
-					blocks.push( startNode );
-
-					if ( startNode === endNode ) {
-						break;
-					}
-
-					startNode = startNode.nextSibling;
-				}
-			} else {
-				blocks.push( startNode );
-			}
-
-			// Handle tripple click selection.
-			if ( ! selection.isCollapsed && selection.focusOffset === 0 && selection.focusNode === endNode ) {
-				blocks.pop();
-			}
-
-			return blocks;
-		},
-		getSelectedBlock: function() {
-			return wp.blocks.getSelectedBlocks()[0];
 		},
 		selectBlock: function( block, _bookmark ) {
 			var editor = window.tinyMCE.activeEditor;

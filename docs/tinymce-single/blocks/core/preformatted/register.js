@@ -1,31 +1,21 @@
 ( function( wp ) {
 
 	function insertEmpty() {
-		return '<pre><br></pre>';
+		return { name: 'pre' };
 	}
 
-	function fromBaseState( oldState ) {
-		var newState = document.createElement( 'PRE' );
-
-		while ( oldState.firstChild ) {
-			newState.appendChild( oldState.firstChild );
-		}
-
-		oldState.parentNode.replaceChild( newState, oldState );
-
-		return newState;
+	function toBaseState( state ) {
+		return {
+			name: 'p',
+			children: state.children
+		};
 	}
 
-	function toBaseState( oldState ) {
-		var newState = document.createElement( 'P' );
-
-		while ( oldState.firstChild ) {
-			newState.appendChild( oldState.firstChild );
-		}
-
-		oldState.parentNode.replaceChild( newState, oldState );
-
-		return newState;
+	function fromBaseState( state ) {
+		return {
+			name: 'pre',
+			children: state.children
+		};
 	}
 
 	window.wp.blocks.registerBlock( {

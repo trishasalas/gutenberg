@@ -7,8 +7,14 @@
 	}
 
 	function createIsActive( classNamePrefix, position, normal ) {
-		return function( node ) {
-			var matches = node.className.match( new RegExp( classNamePrefix + '([^ ]+)' ) );
+		return function( tag, attributes ) {
+			var classes = '';
+
+			if ( attributes && attributes.class ) {
+				classes = attributes.class
+			}
+
+			var matches = classes.match( new RegExp( classNamePrefix + '([^ ]+)' ) );
 
 			if ( matches ) {
 				return position === matches[ 1 ];

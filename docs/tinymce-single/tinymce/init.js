@@ -6,14 +6,15 @@ window.tinymce.init( {
 	menubar: false,
 	object_resizing: false,
 	plugins: [
-		'block',
+		'wp:blocks:connect',
 		'wp:blocks:parse',
 		'wp:blocks:paste:external',
+		'wp:blocks:ui:helpers',
+		'wp:blocks:ui',
 		'lists',
 		'paste',
 		'table',
-		'toolbar',
-		'wplink',
+		// 'wplink',
 		'wptextpattern'
 	],
 	schema: 'html5-strict',

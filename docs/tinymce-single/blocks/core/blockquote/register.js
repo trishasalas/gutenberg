@@ -1,51 +1,27 @@
 ( function( wp ) {
 
 	function insertEmpty() {
-		return '<blockquote><p><br></p></blockquote>';
+		return {
+			name: 'blockquote',
+			children: [
+				{ name: 'p' },
+				{ name: 'footer' }
+			]
+		};
 	}
 
-	function fromBaseState( oldState ) {
-		var newState = document.createElement( 'BLOCKQUOTE' );
-
-		oldState.parentNode.insertBefore( newState, oldState );
-
-		newState.appendChild( oldState );
-
-		return newState;
+	function fromBaseState( state ) {
+		return {
+			name: 'blockquote',
+			children: _.concat(
+				state,
+				{ name: 'footer' }
+			)
+		};
 	}
 
-	function toBaseState( oldState ) {
-		var newState = oldState.firstChild;
-		var footer = oldState.querySelector( 'footer' );
-
-		if ( footer ) {
-			oldState.removeChild( footer );
-		}
-
-		while ( oldState.firstChild ) {
-			oldState.parentNode.insertBefore( oldState.firstChild, oldState );
-		}
-
-		oldState.parentNode.removeChild( oldState );
-
-		return newState;
-	}
-
-	function onSelect( block ) {
-		var footer = block.querySelector( 'footer' );
-
-		if ( ! footer ) {
-			block.insertAdjacentHTML( 'beforeend',
-				'<footer><br></footer>' );
-		}
-	}
-
-	function onDeselect( block ) {
-		var footer = block.querySelector( 'footer' );
-
-		if ( footer && ! footer.textContent ) {
-			block.removeChild( footer );
-		}
+	function toBaseState( state ) {
+		return state.children;
 	}
 
 	wp.blocks.registerBlock( {
@@ -65,9 +41,7 @@
 		],
 		insert: insertEmpty,
 		fromBaseState: fromBaseState,
-		toBaseState: toBaseState,
-		onSelect: onSelect,
-		onDeselect: onDeselect
+		toBaseState: toBaseState
 	} );
 
 } )( window.wp );

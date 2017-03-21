@@ -21,6 +21,6 @@ window.wp.blocks.registerBlock( {
 		return state;
 	},
 	insert: function() {
-		return '<p><br></p>';
+		return { name: 'p' };
 	}
 } );

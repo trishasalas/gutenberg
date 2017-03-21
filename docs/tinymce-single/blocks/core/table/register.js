@@ -1,20 +1,27 @@
 ( function( wp ) {
 
 	function insertEmpty() {
-		return (
-			'<figure>' +
-				'<table>' +
-					'<tr>' +
-						'<td><br></td>' +
-						'<td><br></td>' +
-					'</tr>' +
-					'<tr>' +
-						'<td><br></td>' +
-						'<td><br></td>' +
-					'</tr>' +
-				'</table>' +
-			'</figure>'
-		);
+		return {
+			name: 'figure',
+			children: [ {
+				name: 'table',
+				children: [ {
+					name: 'tr',
+					children: [ {
+						name: 'td'
+					}, {
+						name: 'td'
+					} ]
+				}, {
+					name: 'tr',
+					children: [ {
+						name: 'td'
+					}, {
+						name: 'td'
+					} ]
+				} ]
+			} ]
+		};
 	}
 
 	function onSelect( block ) {
@@ -52,6 +59,7 @@
 			'block-align-center',
 			'block-align-right',
 			'block-align-full',
+			// TODO: remove editor dependency.
 			{
 				classes: 'gridicons-rotate',
 				icon: 'gridicons-indent-right',

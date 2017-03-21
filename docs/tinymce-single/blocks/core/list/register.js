@@ -1,59 +1,55 @@
 ( function( wp ) {
 
 	function insertEmpty() {
-		return '<ul><li><br></li></ul>';
+		return {
+			name: 'ul',
+			children: [ { name: 'li' } ]
+		};
 	}
 
 	function fromBaseState( state ) {
-		var list = document.createElement( 'UL' );
-		var item = document.createElement( 'LI' );
+		var items = [ { name: 'li', children: [] } ];
 
-		list.appendChild( item );
-
-		while ( state.firstChild ) {
-			if ( state.firstChild.nodeName === 'BR' ) {
-				item = document.createElement( 'LI' );
-				list.appendChild( item );
-				state.removeChild( state.firstChild );
+		state.children.forEach( function( child ) {
+			if ( child.name === 'br' ) {
+				items.push( { name: 'li', children: [] } );
 			} else {
-				item.appendChild( state.firstChild );
+				items[ items.length - 1 ].children.push( child );
 			}
-		}
+		} );
 
-		state.parentNode.replaceChild( list, state );
-
-		return list;
+		return {
+			name: 'ul',
+			children: items
+		};
 	}
 
-	function toBaseState( block ) {
-		var state = document.createElement( 'P' );
+	function toBaseState( state ) {
+		function itemsToChildren( items ) {
+			var children = [];
 
-		function build( list, state ) {
-			var item;
-
-			while ( item = list.firstChild ) {
-				if ( state.childNodes.length ) {
-					state.appendChild( document.createElement( 'BR' ) );
+			items.forEach( function( item, i ) {
+				if ( i ) {
+					children.push( { name: 'br' } );
 				}
 
-				while ( item.firstChild ) {
-					if ( item.firstChild.nodeName === 'UL' || item.firstChild.nodeName === 'OL' ) {
-						build( item.firstChild, state )
-						item.removeChild( item.firstChild );
-					} else {
-						state.appendChild( item.firstChild );
+				item.children.forEach( function( child ) {
+					if ( child.name === 'ul' || child.name === 'ol' ) {
+						children.push( { name: 'br' } );
+						child = itemsToChildren( child.children )
 					}
-				}
 
-				list.removeChild( item );
-			}
+					children.push( child );
+				} );
+			} );
+
+			return children;
 		}
 
-		build( block, state );
-
-		block.parentNode.replaceChild( state, block );
-
-		return state;
+		return {
+			name: 'p',
+			children: itemsToChildren( state.children )
+		};
 	}
 
 	wp.blocks.registerBlock( {
@@ -76,6 +72,7 @@
 				stateSelector: 'ul',
 				onClick: function( block, editor ) {
 					// Use native command to toggle current selected list.
+					// TODO: remove editor dependency.
 					editor.execCommand( 'InsertUnorderedList' );
 				}
 			},
@@ -84,6 +81,7 @@
 				stateSelector: 'ol',
 				onClick: function( block, editor ) {
 					// Use native command to toggle current selected list.
+					// TODO: remove editor dependency.
 					editor.execCommand( 'InsertOrderedList' );
 				}
 			}

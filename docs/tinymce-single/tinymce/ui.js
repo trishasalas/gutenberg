@@ -1,20 +1,35 @@
-( function( tinymce, wp, _ ) {
-	tinymce.PluginManager.add( 'block', function( editor ) {
-		var getSelectedBlock = wp.blocks.getSelectedBlock;
-		var getSelectedBlocks = wp.blocks.getSelectedBlocks;
+( function( tinymce, wp, _, stateSelectors, DOMHelpers, observeStore ) {
+	tinymce.PluginManager.add( 'wp:blocks:ui', function( editor ) {
 		var editorPadding = 50;
 
-		// Global controls
+		function getSelectedBlock() {
+			return stateSelectors._getSelectedBlockNode( store.getState(), editor.getBody() );
+		}
 
-		function isNodeEligibleForControl( node, name ) {
-			var block;
+		function getSelectedBlocks() {
+			return stateSelectors._getSelectedBlockNodes( store.getState(), editor.getBody() );
+		}
 
-			if ( ! node ) {
-				return false;
+		function getSelectedBlockSettings() {
+			var content = stateSelectors.getSelectedBlockContent( store.getState() );
+
+			if ( ! content ) {
+				return;
 			}
 
-			block = wp.blocks.getBlockSettingsByElement( node );
-			return block && _.includes( block.controls, name );
+			var id = content.attributes && content.attributes[ 'data-wp-block-type' ];
+			var settings = wp.blocks.getBlockSettings( id );
+
+			if ( ! id || ! settings ) {
+				settings = wp.blocks.getBlockSettingsByTag( content.name );
+			}
+
+			return settings;
+		}
+
+		function focusToolbar( toolbar ) {
+			var node = toolbar.find( 'toolbar' )[0];
+			node && node.focus( true );
 		}
 
 		_.forEach( wp.blocks.getControls(), function( control, name ) {
@@ -33,11 +48,15 @@
 				settings.onPostRender = function() {
 					var button = this;
 
-					editor.on( 'nodechange', function() {
-						var block = getSelectedBlock();
+					observeStore( store, [
+						stateSelectors.getSelectedBlockName,
+						stateSelectors.getSelectedBlockAttributes
+					], function( tag, attributes ) {
+						var settings = getSelectedBlockSettings();
 
-						if ( isNodeEligibleForControl( block, name ) ) {
-							button.active( control.isActive( block ) );
+						// Check if block has this control.
+						if ( settings && _.includes( settings.controls, name ) ) {
+							button.active( control.isActive( tag, attributes ) );
 						}
 					} );
 				};
@@ -61,9 +80,11 @@
 			onPostRender: function() {
 				var button = this;
 
-				editor.on( 'nodeChange', function() {
-					var block = wp.blocks.getSelectedBlock();
-					var settings = wp.blocks.getBlockSettingsByElement( block );
+				observeStore( store, [
+					stateSelectors.getSelectedBlockName,
+					stateSelectors.getSelectedBlockAttributes
+				], function( index ) {
+					var settings = getSelectedBlockSettings();
 
 					if ( settings ) {
 						button.value( settings._id );
@@ -74,20 +95,34 @@
 			},
 			onClick: function( event ) {
 				if ( event.control && event.control.settings.value ) {
-					var block = wp.blocks.getSelectedBlock();
+					var block = getSelectedBlock();
 					var currentSettings = wp.blocks.getBlockSettingsByElement( block );
 					var nextSettings = wp.blocks.getBlockSettings( event.control.settings.value );
 
+					// editor.focus();
 					editor.selection.collapse();
 
-					var bookmark = editor.selection.getBookmark();
+					var state = store.getState();
+					var oldContent = stateSelectors.getSelectedBlockContent( state );
 
-					editor.undoManager.transact( function() {
-						var newBlock = nextSettings.fromBaseState(
-							currentSettings.toBaseState( block, editor ), editor );
+					DOMHelpers.insertMarkerAtPath(
+						oldContent, _.drop( state.selection.start ), '\u0086'
+					);
 
-						wp.blocks.selectBlock( newBlock, bookmark );
-					} );
+					var newContent = currentSettings.toBaseState( oldContent );
+
+					newContent = nextSettings.fromBaseState(
+						Array.isArray( newContent ) ? newContent[ 0 ] : newContent
+					);
+
+					var oldNode = stateSelectors._getSelectedBlockNode( state, editor.getBody() )
+					var newNode = DOMHelpers.stateToDOM( newContent );
+					var newPath = DOMHelpers.getPathAtMarker( newContent, '\u0086' );
+					var node = DOMHelpers.findNodeWithPath( newPath, newNode );
+
+					oldNode.parentNode.replaceChild( newNode, oldNode );
+
+					editor.selection.setCursorLocation( node, newPath[ newPath.length - 1 ] );
 				}
 			}
 		} );
@@ -136,7 +171,7 @@
 		} );
 
 		function setFields() {
-			var block = wp.blocks.getSelectedBlock();
+			var block = getSelectedBlock();
 			var settings = wp.blocks.getBlockSettingsByElement( block );
 
 			if ( settings ) {
@@ -178,7 +213,7 @@
 				return;
 			}
 
-			var block = wp.blocks.getSelectedBlock();
+			var block = getSelectedBlock();
 			var settings = wp.blocks.getBlockSettingsByElement( block );
 
 			if ( settings && settings.editable && settings.editable.length ) {
@@ -201,7 +236,7 @@
 				return;
 			}
 
-			var block = wp.blocks.getSelectedBlock();
+			var block = getSelectedBlock();
 			var settings = wp.blocks.getBlockSettingsByElement( block );
 
 			if ( settings && settings.editable && settings.editable.length ) {
@@ -229,30 +264,39 @@
 
 		editor.on( 'preinit', function() {
 			var DOM = tinymce.DOM;
-			var hidden = true;
 			var hoverTarget;
 			var dragTarget;
-			var isDragging = false;
 
 			editor.serializer.addTempAttr( 'data-wp-block-selected' );
 			editor.serializer.addTempAttr( 'data-wp-placeholder' );
 
-			editor.addButton( 'block', {
-				icon: 'gridicons-posts',
-				tooltip: 'Add Block',
-				onPostRender: function() {
-					var button = this;
+			observeStore( store, [
+				stateSelectors.getSelectedBlockIndex,
+				stateSelectors.getSelectedBlockName,
+				stateSelectors.getSelectedBlockAttributes
+			], function( index ) {
+				var $prevSelected = editor.$( '*[data-wp-block-selected]' );
+				var selected = getSelectedBlock();
 
-					editor.on( 'nodechange', function( event ) {
-						var block = getSelectedBlock();
-						var settings = wp.blocks.getBlockSettingsByElement( block );
+				if ( $prevSelected.length ) {
+					var prevSettings = wp.blocks.getBlockSettingsByElement( $prevSelected[ 0 ] );
 
-						if ( settings ) {
-							button.icon( settings.icon );
-						}
-					} );
+					if ( prevSettings && prevSettings.onDeselect ) {
+						prevSettings.onDeselect( $prevSelected[ 0 ] );
+					}
 				}
-			});
+
+				if ( selected ) {
+					var settings = wp.blocks.getBlockSettingsByElement( selected );
+
+					if ( settings && settings.onSelect ) {
+						settings.onSelect( selected );
+					}
+				}
+
+				$prevSelected.attr( 'data-wp-block-selected', null );
+				editor.$( selected ).attr( 'data-wp-block-selected', 'true' );
+			} );
 
 			function removeBlock() {
 				var $blocks = editor.$( getSelectedBlock() );
@@ -278,7 +322,7 @@
 						$last.after( $prev );
 					} );
 
-					editor.nodeChanged();
+					editor.nodeChanged( { _WPBlockMoved: true } );
 					window.scrollBy( 0, - rect.top + $first[0].getBoundingClientRect().top );
 				}
 			}
@@ -296,7 +340,7 @@
 						$first.before( $next );
 					} );
 
-					editor.nodeChanged();
+					editor.nodeChanged( { _WPBlockMoved: true } );
 					window.scrollBy( 0, - rect.top + $first[0].getBoundingClientRect().top );
 				}
 			}
@@ -309,11 +353,8 @@
 				onPostRender: function() {
 					var button = this;
 
-					editor.on( 'nodeChange', function() {
-						var selectedBlocks = getSelectedBlocks();
-						var firstBlock = selectedBlocks[0];
-
-						button.disabled( ! firstBlock.previousSibling );
+					store.subscribe( function() {
+						button.disabled( ! stateSelectors.hasPreviousBlock( store.getState() ) );
 					} );
 				}
 			} );
@@ -326,11 +367,8 @@
 				onPostRender: function() {
 					var button = this;
 
-					editor.on( 'nodeChange', function() {
-						var selectedBlocks = getSelectedBlocks();
-						var lastBlock = selectedBlocks[ selectedBlocks.length - 1 ];
-
-						button.disabled( ! lastBlock.nextSibling );
+					store.subscribe( function() {
+						button.disabled( ! stateSelectors.hasNextBlock( store.getState() ) );
 					} );
 				}
 			} );
@@ -341,21 +379,21 @@
 				icon: 'gridicons-add-outline',
 				tooltip: 'Add Block',
 				onClick: function() {
-					var selection = window.getSelection();
+					// var isEmpty = wp.stateSelectors.isSelectedBlockEmptySlot( store.getState() );
 
-					if ( ! selection.isCollapsed || ! isEmptySlot( selection.anchorNode, true ) ) {
-						var $blocks = editor.$( getSelectedBlock() );
-						var $p = editor.$( '<p><br></p>' );
+					// if ( ! isEmpty ) {
+					// 	var $blocks = editor.$( getSelectedBlock() );
+					// 	var $p = editor.$( '<p><br></p>' );
 
-						editor.undoManager.transact( function() {
-							$blocks.last().after( $p );
-							editor.selection.setCursorLocation( $p[0], 0 );
-						} );
-					}
+					// 	editor.undoManager.transact( function() {
+					// 		$blocks.last().after( $p );
+					// 		editor.selection.setCursorLocation( $p[0], 0 );
+					// 	} );
+					// }
 
-					setTimeout( function() {
-						insert = true;
-						editor.nodeChanged();
+					store.dispatch( {
+						type: 'SHOW_INSERTER',
+						show: true
 					} );
 				}
 			} );
@@ -364,7 +402,7 @@
 			editor.buttons.bold.icon = 'gridicons-bold';
 			editor.buttons.italic.icon = 'gridicons-italic';
 			editor.buttons.strikethrough.icon = 'gridicons-strikethrough';
-			editor.buttons.link.icon = 'gridicons-link';
+			// editor.buttons.link.icon = 'gridicons-link';
 
 			var blockToolbarWidth = 0;
 
@@ -405,23 +443,25 @@
 			}
 
 			editor.on( 'dragstart', function( event ) {
+				// Target not set by us. Abort.
 				if ( ! dragTarget ) {
 					event.preventDefault();
 					return;
 				}
 
-				isDragging = true;
-				hidden = true;
+				store.dispatch( {
+					type: 'DRAGGING',
+					dragging: true
+				} );
 
-				hideBlockUI();
+				store.dispatch( { type: 'HIDE_UI' } );
 
 				dragTarget.setAttribute( 'data-wp-block-dragging', 'true' );
 
+				DOM.bind( editor.getDoc(), 'mouseup', end );
+
 				function end( event ) {
 					DOM.unbind( editor.getDoc(), 'mouseup', end );
-
-					isDragging = false;
-					dragTarget = null;
 
 					setTimeout( function() {
 						var $draggedNode = editor.$( '*[data-wp-block-dragging]' );
@@ -434,17 +474,24 @@
 							if ( settings && settings.editable && settings.editable.length ) {
 								settings.editable.forEach( function( selector ) {
 									if ( ! selector ) {
-										editor.$( block ).attr( 'contenteditable', null );
+										editor.$( getSelectedBlock() ).attr( 'contenteditable', null );
 									}
 								} );
 							}
-						}
 
-						editor.nodeChanged();
+							dragTarget = null;
+
+							store.dispatch( {
+								type: 'DRAGGING',
+								dragging: false
+							} );
+
+							store.dispatch( { type: 'SHOW_UI' } );
+
+							editor.nodeChanged( { _WPBlockMoved: true } );
+						}
 					} );
 				}
-
-				DOM.bind( editor.getDoc(), 'mouseup', end );
 			} );
 
 			function createInsertToolbar() {
@@ -453,11 +500,20 @@
 				insert.$el.addClass( 'block-toolbar' );
 				insert.$el.addClass( 'insert-toolbar' );
 
-				insert.reposition = function ( settings ) {
+				observeStore( store, [
+					stateSelectors.isSelectedBlockEmptySlot
+				], function( isEmptySlot ) {
+					if ( isEmptySlot ) {
+						insert.reposition( getSelectedBlock(), { isEmpty: true } );
+					} else {
+						insert.hide();
+					}
+				} );
+
+				insert.reposition = function ( block, settings ) {
 					settings = settings || {};
 
 					var toolbar = this.getEl();
-					var block = getSelectedBlock();
 					var isFullBleed = editor.$( block ).hasClass( 'alignfull' );
 					var toolbarRect = toolbar.getBoundingClientRect();
 					var blockRect = block.getBoundingClientRect();
@@ -505,7 +561,9 @@
 					var types = [ 'text', 'media', 'data visualisation', 'separator' ];
 
 					function onClick( callback, settings ) {
-						return function( block ) {
+						return function() {
+							block = getSelectedBlock()
+
 							var content = callback.apply( this, arguments );
 							var args = {
 									format: 'html',
@@ -522,6 +580,8 @@
 									temp.innerHTML = content;
 									content = temp.firstChild;
 									temp = null;
+								} else {
+									content = DOMHelpers.stateToDOM( content );
 								}
 
 								block.parentNode.replaceChild( content, block );
@@ -559,10 +619,10 @@
 
 				insertMenu.$el.addClass( 'insert-menu' );
 
-				insertMenu.reposition = function () {
+				insertMenu.reposition = function( block ) {
 					var toolbar = this.getEl();
 					var toolbarRect = toolbar.getBoundingClientRect();
-					var elementRect = getSelectedBlock().getBoundingClientRect();
+					var elementRect = block.getBoundingClientRect();
 					var contentRect = editor.getBody().getBoundingClientRect();
 
 					DOM.setStyles( toolbar, {
@@ -574,20 +634,30 @@
 					this.show();
 				}
 
+				observeStore( store, [
+					stateSelectors.isInserterShown
+				], function( shown ) {
+					if ( shown ) {
+						insertMenu.reposition( getSelectedBlock() );
+					} else {
+						insertMenu.hide();
+					}
+				} );
+
 				return insertMenu;
 			}
 
 			function createInlineToolbar() {
-				var inline = editor.wp._createToolbar( [ 'bold', 'italic', 'strikethrough', 'link' ] );
+				var inline = editor.wp._createToolbar( [ 'bold', 'italic', 'strikethrough' ] );
 
-				inline.reposition = function( editableRoot ) {
+				inline.reposition = function( editableRoot, field ) {
 					this.show();
 
 					var toolbar = this.getEl();
 					var toolbarRect = toolbar.getBoundingClientRect();
-					var elementRect = ( editableRoot || getSelectedBlock() ).getBoundingClientRect();
+					var elementRect = editableRoot.getBoundingClientRect();
 					var contentRect = editor.getBody().getBoundingClientRect();
-					var offset = editableRoot ? 0 : blockToolbarWidth;
+					var offset = field ? 0 : blockToolbarWidth;
 
 					DOM.setStyles( toolbar, {
 						position: 'absolute',
@@ -596,17 +666,69 @@
 					} );
 				}
 
+				observeStore( store, [
+					stateSelectors.isUIShown,
+					stateSelectors.getSelectedBlockIndex,
+					stateSelectors.getSelectedNodePath,
+					stateSelectors.getSelectedBlockName,
+					stateSelectors.getSelectedBlockAttributes
+				], function( shown, index ) {
+					var state = store.getState();
+					var settings = getSelectedBlockSettings();
+
+					if ( shown && index !== -1 && ! stateSelectors.isSelectedBlockEmptySlot( state ) &&
+						settings && settings.editable && settings.editable.length ) {
+						var selection = window.getSelection();
+
+						if ( ! selection.anchorNode ) {
+							inline.hide();
+							return;
+						}
+
+						var editableRoot = DOMHelpers.getEditableRoot( selection.anchorNode );
+
+						// console.log(settings.editable, selection.anchorNode, editableRoot)
+
+						settings.editable.forEach( function( selector ) {
+							if ( selector ) {
+								if ( editor.$( editableRoot ).is( selector ) ) {
+									inline.reposition( editableRoot, true );
+									return;
+								} else {
+									inline.hide();
+								}
+							} else {
+								inline.reposition( getSelectedBlock() );
+							}
+						} );
+					} else {
+						inline.hide();
+					}
+				} );
+
 				return inline;
 			}
 
 			function createBlockNavigation() {
 				var navigation = editor.wp._createToolbar( [ 'up', 'down' ] );
+				var previousIndex;
 
 				navigation.$el.addClass( 'block-toolbar' );
 
-				navigation.reposition = function () {
+				observeStore( store, [
+					stateSelectors.isUIShown,
+					stateSelectors.getSelectedBlockIndex,
+					stateSelectors.getSelectedBlockContent
+				], function( shown, index ) {
+					if ( shown && index !== -1 ) {
+						navigation.reposition( getSelectedBlock() );
+					} else {
+						navigation.hide();
+					}
+				} );
+
+				navigation.reposition = function( block ) {
 					var toolbar = this.getEl();
-					var block = getSelectedBlock();
 					var isRightAligned = editor.$( block ).hasClass( 'alignright' );
 					var isFullBleed = editor.$( block ).hasClass( 'alignfull' );
 					var toolbarRect = toolbar.getBoundingClientRect();
@@ -644,10 +766,10 @@
 
 				for ( key in settings ) {
 					toolbars[ key ] = editor.wp._createToolbar( settings[ key ].controls || [] );
-					toolbars[ key ].reposition = function () {
+					toolbars[ key ].reposition = function( block ) {
 						var toolbar = this.getEl();
 						var toolbarRect = toolbar.getBoundingClientRect();
-						var elementRect = getSelectedBlock().getBoundingClientRect();
+						var elementRect = block.getBoundingClientRect();
 						var contentRect = editor.getBody().getBoundingClientRect();
 
 						DOM.setStyles( toolbar, {
@@ -662,6 +784,28 @@
 					}
 				}
 
+				observeStore( store, [
+					stateSelectors.isUIShown,
+					stateSelectors.getSelectedBlockIndex,
+					stateSelectors.getSelectedBlockContent
+				], function( shown, index ) {
+					if ( shown && index !== -1 ) {
+						var settings = getSelectedBlockSettings();
+
+						tinymce.each( toolbars, function( toolbar, key ) {
+							if ( key !== settings._id ) {
+								toolbar.hide();
+							}
+						} );
+
+						toolbars[ settings._id ].reposition( getSelectedBlock() );
+					} else {
+						tinymce.each( toolbars, function( toolbar ) {
+							toolbar.hide();
+						} );
+					}
+				} );
+
 				return toolbars;
 			}
 
@@ -670,294 +814,76 @@
 				hoverOutline: createBlockOutline( true ),
 				insert: createInsertToolbar(),
 				insertMenu: createInsertMenu(),
-				inline: createInlineToolbar(),
 				navigation: createBlockNavigation(),
-				blocks: createBlockToolbars()
+				blocks: createBlockToolbars(),
+				inline: createInlineToolbar()
 			};
 
-			editor.on( 'mouseover', function( event ) {
-				var target = wp.blocks.getParentBlock( event.target );
-
-				if ( target !== hoverTarget ) {
-					if ( ! target || isDragging || wp.blocks.getSelectedBlock() === hoverTarget ) {
-						DOM.setStyles( UI.hoverOutline, {
-							display: 'none'
-						} );
-					} else {
-						var rect = target.getBoundingClientRect();
-
-						DOM.setStyles( UI.hoverOutline, {
-							display: 'block',
-							position: 'absolute',
-							left: rect.left + 'px',
-							top: rect.top + window.pageYOffset + 'px',
-							height: rect.height + 'px',
-							width: rect.width + 'px'
-						} );
-					}
-
-					hoverTarget = target;
-				}
-			} );
-
-			var range;
-
-			editor.on( 'blur', function() {
-				UI.inline.hide();
-				UI.insert.hide();
-				hideBlockUI();
-			} );
-
-			function isEmptySlot( node, isAtRoot ) {
-				// Text node.
-				if ( node.nodeType === 3 ) {
-					// Has text.
-					if ( node.data.length ) {
-						return false;
-					} else {
-						node = node.parentNode;
-					}
-				}
-
-				if ( node.nodeName === 'BR' ) {
-					node = node.parentNode;
-				}
-
-				// Element node.
-				if ( node.nodeType === 1 ) {
-					// Element is no direct child.
-					if ( isAtRoot && ( node.parentNode !== editor.getBody() || node.nodeName !== 'P' ) ) {
-						return false;
-					}
-
-					var childNodes = node.childNodes;
-					var i = childNodes.length;
-
-					// Loop over children.
-					while ( i-- ) {
-						// Text node.
-						if ( childNodes[ i ].nodeType === 3 ) {
-							// Has text.
-							if ( childNodes[ i ].data.length ) {
-								return false;
-							}
-						}
-
-						// Element node.
-						if ( childNodes[ i ].nodeType === 1 ) {
-							// Is not BR.
-							if ( childNodes[ i ].nodeName !== 'BR' ) {
-								return false;
-							}
-						}
-					}
-				}
-
-				return true;
-			}
-
-			var hasBlockUI = false;
-
-			function hideBlockUI() {
-				if ( hasBlockUI ) {
-					tinymce.$( editor.getBody() ).removeClass( 'has-block-ui' );
-					hasBlockUI = false;
-				}
-
-				UI.inline.hide();
-				UI.navigation.hide();
-
-				tinymce.each( UI.blocks, function( toolbar ) {
-					toolbar.hide();
-				} );
-
-				DOM.setStyles( UI.outline, {
-					display: 'none'
-				} );
-
-				DOM.setStyles( UI.hoverOutline, {
-					display: 'none'
-				} );
-			}
-
-			function focusToolbar( toolbar ) {
-				var node = toolbar.find( 'toolbar' )[0];
-				node && node.focus( true );
-			}
-
-			function showBlockUI( focus ) {
-				var selectedBlocks = getSelectedBlocks();
-				var settings = wp.blocks.getBlockSettingsByElement( selectedBlocks[0] ),
-					controls;
-
-				if ( ! settings ) {
-					return;
-				}
-
-				if ( ! hasBlockUI ) {
-					tinymce.$( editor.getBody() ).addClass( 'has-block-ui' );
-					hasBlockUI = true;
-				}
-
-				UI.navigation.reposition();
-
-				tinymce.each( UI.blocks, function( toolbar, key ) {
-					if ( key !== settings._id ) {
-						toolbar.hide();
-					}
-				} );
-
-				var $prevSelected = editor.$( '*[data-wp-block-selected]' );
-
-				if ( selectedBlocks && $prevSelected[0] !== selectedBlocks[0] ) {
-					if ( $prevSelected.length ) {
-						var prevSettings = wp.blocks.getBlockSettingsByElement( $prevSelected[0] );
-
-						if ( prevSettings ) {
-							if ( prevSettings.onDeselect ) {
-								prevSettings.onDeselect( $prevSelected[0] );
-							}
-
-							$prevSelected.attr( 'data-wp-block-selected', null );
-
-							window.console.log( 'Deselected: ' + prevSettings._id );
-						}
-					}
-
-					if ( selectedBlocks.length === 1 ) {
-						if ( settings.onSelect ) {
-							settings.onSelect( selectedBlocks[0] );
-						}
-
-						editor.$( selectedBlocks[0] ).attr( 'data-wp-block-selected', 'true' );
-
-						window.console.log( 'Selected: ' + settings._id );
-					}
-				}
-
-				if ( selectedBlocks.length === 1 ) {
-					UI.blocks[ settings._id ].reposition();
-					focus && focusToolbar( UI.blocks[ settings._id ] );
-
-					UI.inline.hide();
-
-					if ( settings.editable && settings.editable.length ) {
-						var selection = window.getSelection();
-						var editableRoot = getEditableRoot( selection.anchorNode );
-
-						settings.editable.forEach( function( selector ) {
-							if ( selector ) {
-								if ( editor.$( editableRoot ).is( selector ) ) {
-									UI.inline.reposition( editableRoot );
-									return;
-								}
-							} else {
-								UI.inline.reposition();
-							}
-						} );
-					}
-
-					UI.insert.reposition();
+			observeStore( store, [
+				stateSelectors.getHoverIndex,
+				stateSelectors.getSelectedBlockIndex
+			], function( index, selectedIndex ) {
+				if ( index === -1 || index === selectedIndex ) {
+					DOM.setStyles( UI.hoverOutline, { display: 'none' } );
 				} else {
-					UI.blocks[ settings._id ].hide();
-					UI.inline.hide();
-					UI.insert.hide();
-				}
+					var node = editor.getBody().childNodes[ index ];
 
-				var startRect = selectedBlocks[0].getBoundingClientRect();
-				var endRect = selectedBlocks[ selectedBlocks.length - 1 ].getBoundingClientRect();
-
-				DOM.setStyles( UI.outline, {
-					display: 'block',
-					position: 'absolute',
-					left: Math.min( startRect.left, endRect.left ) + 'px',
-					top: startRect.top + window.pageYOffset + 'px',
-					height: endRect.bottom - startRect.top + 'px',
-					width: Math.max( startRect.width, endRect.width ) + 'px'
-				} );
-			}
-
-			editor.on( 'keydown', function( event ) {
-				if ( tinymce.util.VK.metaKeyPressed( event ) ) {
-					return;
-				}
-
-				hidden = true;
-				insert = false;
-			} );
-
-			editor.on( 'mousedown touchstart setSelectionRange', function( event ) {
-				// Show UI on setSelectionRange for non editable blocks.
-				if ( event.range ) {
-					if ( editor.selection.getNode().isContentEditable ) {
+					if ( ! node ) {
 						return;
 					}
-				}
 
-				hidden = false;
-				insert = false;
+					var rect = node.getBoundingClientRect()
+
+					DOM.setStyles( UI.hoverOutline, {
+						display: 'block',
+						position: 'absolute',
+						left: rect.left + 'px',
+						top: rect.top + window.pageYOffset + 'px',
+						height: rect.height + 'px',
+						width: rect.width + 'px'
+					} );
+
+					hoverTarget = node;
+				}
 			} );
+
+			observeStore( store, [
+				stateSelectors.isUIShown,
+				stateSelectors.getSelectedBlockIndices,
+				stateSelectors.getSelectedBlockContent
+			], function( shown ) {
+				var nodes = getSelectedBlocks();
+
+				if ( shown && nodes.length ) {
+					var startRect = nodes[0].getBoundingClientRect();
+					var endRect = nodes[ nodes.length - 1 ].getBoundingClientRect();
+
+					DOM.setStyles( UI.outline, {
+						display: 'block',
+						position: 'absolute',
+						left: Math.min( startRect.left, endRect.left ) + 'px',
+						top: startRect.top + window.pageYOffset + 'px',
+						height: endRect.bottom - startRect.top + 'px',
+						width: Math.max( startRect.width, endRect.width ) + 'px'
+					} );
+				} else {
+					DOM.setStyles( UI.outline, {
+						display: 'none'
+					} );
+				}
+			} );
+
+			// function showBlockUI( focus ) {
+			// 	if ( selectedBlocks.length === 1 ) {
+			// 		focus && focusToolbar( UI.blocks[ settings._id ] );
+			// 	}
+			// }
 
 			editor.on( 'selectionChange nodeChange', function( event ) {
-				var isCollapsed = editor.selection.isCollapsed();
-				var startNode = editor.selection.getStart();
-
-				if ( ! startNode ) {
-					return;
-				}
-
-				if ( startNode.id === 'mcepastebin' ) {
-					return;
-				}
-
-				if ( ! editor.getBody().contains( startNode ) ) {
-					return;
-				}
-
-				var isEmpty = isCollapsed && isEmptySlot( startNode, true );
-				var isBlockUIVisible = ! hidden;
-
-				if ( isEmpty ) {
-					hideBlockUI();
-					UI.inline.hide();
-					UI.insert.reposition( { isEmpty: isEmpty } );
-				} else {
-					if ( isBlockUIVisible ) {
-						showBlockUI();
-					} else {
-						hideBlockUI();
-						UI.insert.hide();
-					}
-				}
-
 				setFields();
-
-				if ( insert ) {
-					UI.insertMenu.reposition();
-				} else {
-					UI.insertMenu.hide();
-				}
-			} );
-
-			editor.on( 'nodeChange', function( event ) {
-				insert = false;
 			} );
 
 			var metaCount = 0;
-
-			function getEditableRoot( node ) {
-				var rootNode = editor.getBody();
-
-				while ( node && node !== rootNode ) {
-					if ( node.contentEditable === 'true' ) {
-						return node;
-					}
-
-					node = node.parentNode;
-				}
-
-				return null;
-			}
 
 			editor.on( 'keydown', function( event ) {
 				var keyCode = event.keyCode;
@@ -967,7 +893,7 @@
 					var rng = editor.selection.getRng();
 					var startNode = editor.selection.getStart();
 					var endNode = editor.selection.getEnd();
-					var editableRoot = getEditableRoot( editor.selection.getNode() );
+					var editableRoot = DOMHelpers.getEditableRoot( editor.selection.getNode(), editor.getBody() );
 
 					if ( editableRoot ) {
 						if ( editor.dom.isEmpty( editableRoot ) ) {
@@ -975,9 +901,11 @@
 						}
 					}
 
+					console.log( store.getState().selection)
+
 					// Handle tripple click
 					// Some browsers select start of the next block.
-					if (
+					if ( false &&
 						// It's a selection.
 						! rng.isCollapsed &&
 						// Cursor is at start of node.
@@ -1007,10 +935,6 @@
 				} else {
 					metaCount = 0;
 				}
-
-				if ( keyCode === 27 ) {
-					hideBlockUI();
-				}
 			}, true );
 
 			editor.on( 'keyup', function( event ) {
@@ -1029,19 +953,33 @@
 
 			editor.on( 'keyup', function( event ) {
 				if ( metaCount === 1 ) {
-					var selection = window.getSelection();
+					// var selection = window.getSelection();
 
-					if ( selection.isCollapsed && isEmptySlot( selection.anchorNode, true ) ) {
-						return;
-					}
+					// if ( selection.isCollapsed && isEmptySlot( selection.anchorNode, true ) ) {
+					// 	return;
+					// }
 
-					UI.insert.reposition();
+					// UI.insert.reposition();
 
-					showBlockUI( true );
+					// showBlockUI( true );
 				}
 
 				metaCount = 0;
 			} );
 		} );
+
+		if ( window.location.hash === '#debug' ) {
+			store.subscribe( function() {
+				document.getElementById( 'print' ).textContent =
+					DOMHelpers.stateToHTML( store.getState().content );
+			} );
+		}
 	} );
-} )( window.tinymce, window.wp, window._ );
+} )(
+	window.tinymce,
+	window.wp,
+	window._,
+	window.wp.stateSelectors,
+	window.wp.DOMHelpers,
+	window.wp.storeHelpers.observeStore
+);

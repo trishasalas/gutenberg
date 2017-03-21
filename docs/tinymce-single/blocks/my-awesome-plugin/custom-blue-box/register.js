@@ -1,31 +1,29 @@
 ( function( wp ) {
 
+	var schema = {
+		name: 'section',
+		children: '*'
+	};
+
 	function insertEmpty() {
-		return '<section><p><br></p></section>';
+		return {
+			name: 'section',
+			children: [ { name: 'p' } ]
+		};
 	}
 
-	function fromBaseState( oldState ) {
-		var newState = document.createElement( 'SECTION' );
-
-		newState.setAttribute( 'data-wp-block-type', 'my-awesome-plugin:custom-blue-box' );
-
-		oldState.parentNode.insertBefore( newState, oldState );
-
-		newState.appendChild( oldState );
-
-		return newState;
+	function fromBaseState( state ) {
+		return {
+			name: 'section',
+			attributes: {
+				'data-wp-block-type': 'my-awesome-plugin:custom-blue-box',
+			},
+			children: [ state ]
+		};
 	}
 
-	function toBaseState( oldState ) {
-		var newState = oldState.firstChild;
-
-		while ( oldState.firstChild ) {
-			oldState.parentNode.insertBefore( oldState.firstChild, oldState );
-		}
-
-		oldState.parentNode.removeChild( oldState );
-
-		return newState;
+	function toBaseState( state ) {
+		return state.children;
 	}
 
 	wp.blocks.registerBlock( {
