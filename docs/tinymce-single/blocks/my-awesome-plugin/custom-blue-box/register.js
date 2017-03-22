@@ -6,24 +6,15 @@
 	};
 
 	function insertEmpty() {
-		return {
-			name: 'section',
-			children: [ { name: 'p' } ]
-		};
+		return [ 'section', [ 'p' ] ];
 	}
 
-	function fromBaseState( state ) {
-		return {
-			name: 'section',
-			attributes: {
-				'data-wp-block-type': 'my-awesome-plugin:custom-blue-box',
-			},
-			children: [ state ]
-		};
+	function fromBaseState( list ) {
+		return [ _.concat( [ 'section', { 'data-wp-block-type': 'my-awesome-plugin:custom-blue-box' } ], list ) ];
 	}
 
-	function toBaseState( state ) {
-		return state.children;
+	function toBaseState( element, helpers ) {
+		return helpers.getChildren( element );
 	}
 
 	wp.blocks.registerBlock( {

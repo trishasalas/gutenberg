@@ -1,85 +1,41 @@
 ( function( wp ) {
 
+	var schema = (
+		[ 'figure',
+			[ 'figure+',
+				[ 'img' ],
+				[ 'figcaption?' ]
+			]
+		]
+	);
+
 	function insertEmpty() {
 		return (
-			'<figure data-wp-block-setting-column="2">' +
-				'<figure>' +
-					'<div class="wp-blocks-placeholder">' +
-						'<svg width="48" height="48">' +
-							'<use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="../shared/gridicons.svg#gridicons-add-outline"></use>' +
-						'</svg>' +
-						'<p>Pick image</p>' +
-					'</div>' +
-				'</figure>' +
-				'<figure>' +
-					'<div class="wp-blocks-placeholder">' +
-						'<svg width="48" height="48">' +
-							'<use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="../shared/gridicons.svg#gridicons-add-outline"></use>' +
-						'</svg>' +
-						'<p>Pick image</p>' +
-					'</div>' +
-				'</figure>' +
-			'</figure>'
+			[ 'figure', { 'data-wp-block-setting-column': '2' },
+				[ 'figure',
+					[ 'div', { class: 'wp-blocks-placeholder' },
+						[ 'svg', { width: '48', height: '48' },
+							[ 'use', {
+								'xmlns:xlink': 'http://www.w3.org/1999/xlink',
+								'xlink:href': '../shared/gridicons.svg#gridicons-add-outline'
+							} ]
+						],
+						[ 'p', 'Pick image' ]
+					]
+				],
+				[ 'figure',
+					[ 'div', { class: 'wp-blocks-placeholder' },
+						[ 'svg', { width: '48', height: '48' },
+							[ 'use', {
+								'xmlns:xlink': 'http://www.w3.org/1999/xlink',
+								'xlink:href': '../shared/gridicons.svg#gridicons-add-outline'
+							} ]
+						],
+						[ 'p', 'Pick image' ]
+					]
+				]
+			]
 		);
-
-		// Pretty verbose...
-
-		// return {
-		// 	name: 'figure',
-		// 	attributes: { 'data-wp-block-setting-column': '2' },
-		// 	children: [ {
-		// 		name: 'figure',
-		// 		children: [ {
-		// 			name: 'div',
-		// 			attributes: { class: 'wp-blocks-placeholder' },
-		// 			children: [ {
-		// 				name: 'svg',
-		// 				attributes: { width: '48', height: '48' },
-		// 				children: [ {
-		// 					name: 'use',
-		// 					attributes: {
-		// 						'xmlns:xlink': 'http://www.w3.org/1999/xlink',
-		// 						'xlink:href': '../shared/gridicons.svg#gridicons-add-outline'
-		// 					}
-		// 				} ]
-		// 			}, {
-		// 				name: 'p',
-		// 				children: [ { name: '#text', value: 'Pick image' } ]
-		// 			} ]
-		// 		} ]
-		// 	} ]
-		// };
-
-		// Better?
-
-		// return (
-		// 	[ 'figure', { 'data-wp-block-setting-column': '2' },
-		// 		[ 'figure',
-		// 			[ 'div', { class: 'wp-blocks-placeholder' },
-		// 				[ 'svg', { width: '48', height: '48' },
-		// 					[ 'use', {
-		// 						'xmlns:xlink': 'http://www.w3.org/1999/xlink',
-		// 						'xlink:href': '../shared/gridicons.svg#gridicons-add-outline'
-		// 					} ]
-		// 				],
-		// 				[ 'p', {}, 'Pick image' ]
-		// 			]
-		// 		]
-		// 	]
-		// );
-		//
-
-		// Alt.
-
-		// return (
-		// 	[ 'figure', { class: 'align-right' },
-		// 		[ 'img', {
-		// 			src: 'https://...',
-		// 			alt: ''
-		// 		} ],
-		// 		[ 'figcaption', 'This ', [ 'em', 'is' ], ' a caption.' ]
-		// 	]
-		// );
 	}
 
 	function onSelect( block ) {

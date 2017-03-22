@@ -1,21 +1,17 @@
 ( function( wp ) {
 
 	function insertEmpty() {
-		return { name: 'pre' };
+		return [ 'pre' ];
 	}
 
-	function toBaseState( state ) {
-		return {
-			name: 'p',
-			children: state.children
-		};
+	function fromBaseState( list, helpers ) {
+		return _.map( list, function( element ) {
+			return helpers.setName( element, 'pre' );
+		} );
 	}
 
-	function fromBaseState( state ) {
-		return {
-			name: 'pre',
-			children: state.children
-		};
+	function toBaseState( element, helpers ) {
+		return helpers.setName( element, 'p' );
 	}
 
 	window.wp.blocks.registerBlock( {

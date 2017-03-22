@@ -14,13 +14,13 @@ window.wp.blocks.registerBlock( {
 		'text-align-center',
 		'text-align-right'
 	],
-	toBaseState: function( state ) {
-		return state;
+	fromBaseState: function( list ) {
+		return list;
 	},
-	fromBaseState: function( state ) {
-		return state;
+	toBaseState: function( element ) {
+		return element;
 	},
 	insert: function() {
-		return { name: 'p' };
+		return [ 'p' ];
 	}
 } );

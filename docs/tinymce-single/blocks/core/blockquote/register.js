@@ -1,27 +1,24 @@
 ( function( wp ) {
 
+	var schema = (
+		[ 'blockquote',
+			'*',
+			[ 'footer' ]
+		]
+	);
+
 	function insertEmpty() {
-		return {
-			name: 'blockquote',
-			children: [
-				{ name: 'p' },
-				{ name: 'footer' }
-			]
-		};
+		return [ 'blockquote', [ 'p' ], [ 'footer' ] ];
 	}
 
-	function fromBaseState( state ) {
-		return {
-			name: 'blockquote',
-			children: _.concat(
-				state,
-				{ name: 'footer' }
-			)
-		};
+	function fromBaseState( list ) {
+		return _.concat( [ 'blockquote' ], list, [ [ 'footer' ] ] );
 	}
 
-	function toBaseState( state ) {
-		return state.children;
+	function toBaseState( element, helpers ) {
+		return _.filter( helpers.getChildren( element ), function( child ) {
+			return helpers.getName( child ) !== 'footer';
+		} );
 	}
 
 	wp.blocks.registerBlock( {

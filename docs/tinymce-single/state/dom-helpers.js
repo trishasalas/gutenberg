@@ -1,41 +1,49 @@
 window.wp = window.wp || {};
-window.wp.DOMHelpers = ( function() {
+window.wp.DOMHelpers = ( function( contentHelpers ) {
 
-	function DOMToState( node, selection ) {
-		var state = {
-			name: node.nodeName.toLowerCase()
-		};
+	function DOMToJSON( node, inner ) {
+		var name = node.nodeName.toLowerCase();
 
-		if ( state.name !== '#text' ) {
+		// _.defaults( settings, {
+		// 	inner: false,
+		// 	path: false
+		// } );
+
+		if ( name === '#text' ) {
+			return node.nodeValue;
+		} else {
+			var json = [];
+			var jsonAttributes = {};
 			var attributes = node.attributes;
 			var attributesLength = attributes.length;
 			var childNodes = node.childNodes;
 			var childNodesLength = childNodes.length;
-
 			var i;
 
-			if ( attributesLength ) {
-				state.attributes = {};
+			if ( ! inner ) {
+				json.push( name );
 
-				for ( i = 0; i < attributesLength; i++ ) {
-					if ( attributes[ i ].name === 'data-mce-bogus' ) {
-						return null;
+				if ( attributesLength ) {
+					for ( i = 0; i < attributesLength; i++ ) {
+						if ( attributes[ i ].name === 'data-mce-bogus' ) {
+							return null;
+						}
+
+						if ( [
+							'contenteditable',
+							'data-mce-selected',
+							'data-wp-block-selected',
+							'data-wp-placeholder',
+							'data-wp-block-dragging'
+						].indexOf( attributes[ i ].name ) === -1 &&
+						attributes[ i ].name.indexOf( 'data-mce-' ) !== 0 ) {
+							jsonAttributes[ attributes[ i ].name ] = attributes[ i ].value;
+						}
 					}
 
-					if ( [
-						'contenteditable',
-						'data-mce-selected',
-						'data-wp-block-selected',
-						'data-wp-placeholder',
-						'data-wp-block-dragging'
-					].indexOf( attributes[ i ].name ) === -1 &&
-					attributes[ i ].name.indexOf( 'data-mce-' ) !== 0 ) {
-						state.attributes[ attributes[ i ].name ] = attributes[ i ].value;
+					if ( ! _.isEmpty( jsonAttributes ) ) {
+						json.push( jsonAttributes );
 					}
-				}
-
-				if ( _.isEmpty( state.attributes ) ) {
-					delete state.attributes;
 				}
 			}
 
@@ -44,97 +52,126 @@ window.wp.DOMHelpers = ( function() {
 				if ( childNodesLength !== 1 || childNodes[ 0 ].nodeName !== 'BR' ) {
 					var child;
 
-					state.children = [];
-
 					for ( i = 0; i < childNodesLength; i++ ) {
-						child = DOMToState( childNodes[ i ] );
+						child = DOMToJSON( childNodes[ i ] );
 
 						if ( child ) {
-							state.children.push( child );
+							json.push( child );
 						}
 					}
 				}
 			}
-		} else {
-			state.value = node.nodeValue;
-		}
 
-		return state;
+			return json;
+		}
 	}
 
-	function stateToDOM( state ) {
-		if ( Array.isArray( state ) ) {
-			node = document.createDocumentFragment();
+	function isBlock( name ) {
+		return _.indexOf( [
+			'div', 'p', 'blockquote', 'figure', 'figcaption', 'footer', 'td'
+		], name ) !== -1;
+	}
 
-			state.forEach( function( child ) {
-				node.appendChild( stateToDOM( child ) );
-			} );
-		} else if ( state.name !== '#text' ) {
-			var node = document.createElement( state.name.toUpperCase() );
+	function isSVGElement( name ) {
+		return _.indexOf( [
+			'svg', 'use'
+		], name ) !== -1;
+	}
 
-			if ( state.attributes ) {
-				var name;
+	function JSONToDOM( json ) {
+		if ( ! json.length ) {
+			return;
+		}
 
-				for ( name in state.attributes ) {
-					node.setAttribute( name, state.attributes[ name ] );
-				}
+		if ( contentHelpers.isText( json ) ) {
+			return document.createTextNode( json.replace( '\u0086', '' ) );
+		}
+
+		if ( _.isString( json[ 0 ] ) ) {
+			var name = json[ 0 ];
+
+			// Temporary fix for namespace issue.
+			if ( name === 'svg' ) {
+				var temp = document.createElement( 'div' );
+
+				temp.innerHTML = stateToHTML( [ json ] );
+
+				return temp.firstChild;
+			} else {
+				var node = document.createElement( name.toUpperCase() );
 			}
 
-			if ( state.children ) {
-				state.children.forEach( function( child ) {
-					node.appendChild( stateToDOM( child ) );
-				} );
+			var attributes = {};
+			var children;
+
+			if ( _.isPlainObject( json[ 1 ] ) ) {
+				attributes = json[ 1 ];
+				children = _.drop( json, 2 );
 			} else {
+				children = _.drop( json );
+			}
+
+			_.forOwn( attributes, function( value, key ) {
+				node.setAttribute( key, value );
+			} );
+
+			if ( children.length ) {
+				_.forEach( children, function( child ) {
+					node.appendChild( JSONToDOM( child ) );
+				} );
+			} else if ( isBlock( json[ 0 ] ) ) {
 				node.appendChild( document.createElement( 'BR' ) );
 			}
-		} else {
-			node = document.createTextNode( state.value.replace( '\u0086', '' ) );
+
+			return node;
 		}
+
+		var node = document.createDocumentFragment();
+
+		_.forEach( json, function( child ) {
+			node.appendChild( JSONToDOM( child ) );
+		} );
 
 		return node;
 	}
 
-	function stateToHTML( state, _recusive ) {
+	function stateToHTML( content, _recusive ) {
 		var string = '';
 
-		state.forEach( function( child, i ) {
-			var end = '';
+		_.forEach( content, function( child, index ) {
+			if ( contentHelpers.isText( child ) ) {
+				string += child.replace( '\u0086', '' );
+			} else {
+				var id = contentHelpers.getAttribute( child, 'data-wp-block-type' );
+				var name = contentHelpers.getName( child );
+				var attributes = contentHelpers.getAttributes( child );
+				var children = contentHelpers.getChildren( child );
 
-			if ( child.name !== '#text' ) {
-				if ( child.attributes && child.attributes[ 'data-wp-block-type' ] ) {
-					string += '<!-- ' + child.attributes[ 'data-wp-block-type' ] + ' -->';
-					end += '<!-- /wp -->';
+				if ( id ) {
+					string += '<!-- ' + id + ' -->';
 				}
 
-				string += '<' + child.name;
+				string += '<' + name;
 
-				if ( child.attributes ) {
-					var name;
-
-					for ( name in child.attributes ) {
-						if ( name === 'data-wp-block-type' ) {
-							break;
-						}
-
-						string += ' ' + name + '="' + child.attributes[ name ] + '"';
+				_.forOwn( attributes, function( value, key ) {
+					if ( key !== 'data-wp-block-type' ) {
+						string += ' ' + key + '="' + value + '"';
 					}
-				}
+				} );
 
 				string += '>';
 
-				if ( child.children ) {
-					string += stateToHTML( child.children, true );
+				string += stateToHTML( children, true );
+
+				string += '</' + name + '>';
+
+				if ( id ) {
+					string += '<!-- /wp -->';
 				}
 
-				string += '</' + child.name + '>';
-
-				string += end;
-
-				if ( ! _recusive && i < state.length ) {
+				if ( ! _recusive && index < content.length ) {
 					string += '\n';
 				}
-			} else {
-				string += child.value;
 			}
 		} );
 
@@ -271,48 +308,51 @@ window.wp.DOMHelpers = ( function() {
 		}
 	}
 
-	/**
-	 * Mutates state arg!
-	 */
 	function insertMarkerAtPath( state, path, marker ) {
-		var child = state;
+		var index = _.first( path );
 
-		path.forEach( function( index ) {
-			if ( child.children && child.children[ index ] ) {
-				child = child.children[ index ];
-			} else if ( child.name === '#text' ) {
-				child.value = child.value.slice( 0, index ) + marker + child.value.slice( index )
-			}
-		} );
+		if ( contentHelpers.isText( state ) ) {
+			return state.slice( 0, index ) + marker + state.slice( index );
+		}
+
+		return contentHelpers.setChildren( state,
+			_.map( contentHelpers.getChildren( state ), function( child, i ) {
+				if ( i === index ) {
+					return insertMarkerAtPath( child, _.drop( path ), marker );
+				}
+
+				return child;
+			} )
+		);
 	}
 
 	function getPathAtMarker( state, marker ) {
-		if ( state.name === '#text' ) {
-			var index = state.value.indexOf( marker );
+		if ( contentHelpers.isText( state ) ) {
+			var index = state.indexOf( marker );
 			return index === -1 ? false : [ index ];
 		} else {
-			if ( state.children && state.children.length ) {
-				var i = state.children.length;
-				var path;
-
-				while ( i-- ) {
-					path = getPathAtMarker( state.children[ i ], marker );
-
-					if ( path ) {
-						return [ i ].concat( path );
-					}
-				}
-
-				return false;
-			} else {
-				return false;
+			if ( contentHelpers.isElement( state ) ) {
+				state = contentHelpers.getChildren( state );
 			}
+
+			var i = state.length;
+			var path;
+
+			while ( i-- ) {
+				path = getPathAtMarker( state[ i ], marker );
+
+				if ( path ) {
+					return [ i ].concat( path );
+				}
+			}
+
+			return false;
 		}
 	}
 
 	return {
-		DOMToState: DOMToState,
-		stateToDOM: stateToDOM,
+		DOMToJSON: DOMToJSON,
+		JSONToDOM: JSONToDOM,
 		stateToHTML: stateToHTML,
 		getChildIndex: getChildIndex,
 		findNodeWithPath: findNodeWithPath,
@@ -323,4 +363,4 @@ window.wp.DOMHelpers = ( function() {
 		getPathAtMarker: getPathAtMarker
 	};
 
-} )();
+} )( window.wp.contentHelpers );

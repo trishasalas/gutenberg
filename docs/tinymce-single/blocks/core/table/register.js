@@ -1,27 +1,20 @@
 ( function( wp ) {
 
 	function insertEmpty() {
-		return {
-			name: 'figure',
-			children: [ {
-				name: 'table',
-				children: [ {
-					name: 'tr',
-					children: [ {
-						name: 'td'
-					}, {
-						name: 'td'
-					} ]
-				}, {
-					name: 'tr',
-					children: [ {
-						name: 'td'
-					}, {
-						name: 'td'
-					} ]
-				} ]
-			} ]
-		};
+		return (
+			[ 'figure',
+				[ 'table',
+					[ 'tr',
+						[ 'td' ],
+						[ 'td' ]
+					],
+					[ 'tr',
+						[ 'td' ],
+						[ 'td' ]
+					]
+				]
+			]
+		);
 	}
 
 	function onSelect( block ) {

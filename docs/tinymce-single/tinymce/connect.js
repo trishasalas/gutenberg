@@ -56,7 +56,7 @@
 
 			store.dispatch( {
 				type: 'SET_CONTENT',
-				content: DOMHelpers.DOMToState( editor.getBody() ).children
+				content: DOMHelpers.DOMToJSON( editor.getBody(), true )
 			} );
 
 			/**
@@ -105,7 +105,7 @@
 				// A block has been deleted.
 				// Quick check.
 				if ( moved || state.content.length !== rootNode.children.length ) {
-					var newContent = DOMHelpers.DOMToState( rootNode ).children;
+					var newContent = DOMHelpers.DOMToJSON( rootNode, true );
 
 					// Actual check.
 					if ( moved || state.content.length !== newContent.length ) {
@@ -121,7 +121,7 @@
 				if ( stateSelectors.getSelectedBlockIndex( state ) !== -1 ) {
 					var currentContent = stateSelectors.getSelectedBlockContent( state );
 					var blockNode = stateSelectors._getSelectedBlockNode( state, rootNode );
-					var blockContent = DOMHelpers.DOMToState( blockNode );
+					var blockContent = DOMHelpers.DOMToJSON( blockNode );
 
 					// A block has been updated.
 					if ( ! _.isEqual( currentContent, blockContent ) ) {
@@ -136,7 +136,7 @@
 			editor.on( 'newBlock', function() {
 				store.dispatch( {
 					type: 'SET_CONTENT',
-					content: DOMHelpers.DOMToState( editor.getBody() ).children
+					content: DOMHelpers.DOMToJSON( editor.getBody(), true )
 				} );
 			} );
 

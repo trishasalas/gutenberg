@@ -1,4 +1,4 @@
-( function( tinymce, wp, _, stateSelectors, DOMHelpers, observeStore ) {
+( function( tinymce, wp, _, stateSelectors, DOMHelpers, observeStore, contentHelpers ) {
 	tinymce.PluginManager.add( 'wp:blocks:ui', function( editor ) {
 		var editorPadding = 50;
 
@@ -12,16 +12,11 @@
 
 		function getSelectedBlockSettings() {
 			var content = stateSelectors.getSelectedBlockContent( store.getState() );
-
-			if ( ! content ) {
-				return;
-			}
-
-			var id = content.attributes && content.attributes[ 'data-wp-block-type' ];
+			var id = contentHelpers.getAttribute( content, 'data-wp-block-type' );
 			var settings = wp.blocks.getBlockSettings( id );
 
 			if ( ! id || ! settings ) {
-				settings = wp.blocks.getBlockSettingsByTag( content.name );
+				settings = wp.blocks.getBlockSettingsByTag( contentHelpers.getName( content ) );
 			}
 
 			return settings;
@@ -96,27 +91,29 @@
 			onClick: function( event ) {
 				if ( event.control && event.control.settings.value ) {
 					var block = getSelectedBlock();
-					var currentSettings = wp.blocks.getBlockSettingsByElement( block );
+					var currentSettings = getSelectedBlockSettings();
 					var nextSettings = wp.blocks.getBlockSettings( event.control.settings.value );
 
-					// editor.focus();
-					editor.selection.collapse();
+					editor.focus();
 
 					var state = store.getState();
 					var oldContent = stateSelectors.getSelectedBlockContent( state );
 
-					DOMHelpers.insertMarkerAtPath(
+					oldContent = DOMHelpers.insertMarkerAtPath(
 						oldContent, _.drop( state.selection.start ), '\u0086'
 					);
 
-					var newContent = currentSettings.toBaseState( oldContent );
+					var newContent = currentSettings.toBaseState( oldContent, contentHelpers );
 
-					newContent = nextSettings.fromBaseState(
-						Array.isArray( newContent ) ? newContent[ 0 ] : newContent
-					);
+					// `fromBaseState` always receives list.
+					if ( contentHelpers.isElement( newContent ) ) {
+						newContent = [ newContent ];
+					}
+
+					newContent = nextSettings.fromBaseState( newContent, contentHelpers );
 
 					var oldNode = stateSelectors._getSelectedBlockNode( state, editor.getBody() )
-					var newNode = DOMHelpers.stateToDOM( newContent );
+					var newNode = DOMHelpers.JSONToDOM( newContent );
 					var newPath = DOMHelpers.getPathAtMarker( newContent, '\u0086' );
 					var node = DOMHelpers.findNodeWithPath( newPath, newNode );
 
@@ -581,7 +578,7 @@
 									content = temp.firstChild;
 									temp = null;
 								} else {
-									content = DOMHelpers.stateToDOM( content );
+									content = DOMHelpers.JSONToDOM( content );
 								}
 
 								block.parentNode.replaceChild( content, block );
@@ -981,5 +978,6 @@
 	window._,
 	window.wp.stateSelectors,
 	window.wp.DOMHelpers,
-	window.wp.storeHelpers.observeStore
+	window.wp.storeHelpers.observeStore,
+	window.wp.contentHelpers
 );

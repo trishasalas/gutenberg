@@ -6,8 +6,6 @@ window.wp.blocks.registerBlock( {
 	type: 'separator',
 	icon: 'gridicons-minus',
 	insert: function() {
-		return {
-			name: 'hr'
-		};
+		return [ 'hr' ];
 	}
 } );

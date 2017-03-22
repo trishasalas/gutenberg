@@ -1,55 +1,48 @@
 ( function( wp ) {
 
 	function insertEmpty() {
-		return {
-			name: 'ul',
-			children: [ { name: 'li' } ]
-		};
+		return [ 'ul', [ 'li' ] ];
 	}
 
-	function fromBaseState( state ) {
-		var items = [ { name: 'li', children: [] } ];
+	function fromBaseState( list, helpers ) {
+		var result = [ 'ul', [ 'li' ] ];
 
-		state.children.forEach( function( child ) {
-			if ( child.name === 'br' ) {
-				items.push( { name: 'li', children: [] } );
-			} else {
-				items[ items.length - 1 ].children.push( child );
-			}
+		_.forEach( list, function( element, i ) {
+			i && result.push( [ 'li' ] );
+
+			_.forEach( helpers.getChildren( element ), function( child ) {
+				if ( helpers.getName( child ) === 'br' ) {
+					result.push( [ 'li' ] );
+				} else {
+					_.last( result ).push( child );
+				}
+			} );
 		} );
 
-		return {
-			name: 'ul',
-			children: items
-		};
+		return result;
 	}
 
-	function toBaseState( state ) {
-		function itemsToChildren( items ) {
+	function toBaseState( element, helpers ) {
+		function unwrap( items ) {
 			var children = [];
 
-			items.forEach( function( item, i ) {
-				if ( i ) {
-					children.push( { name: 'br' } );
-				}
+			_.forEach( items, function( item, i ) {
+				i && children.push( [ 'br' ] );
 
-				item.children.forEach( function( child ) {
-					if ( child.name === 'ul' || child.name === 'ol' ) {
-						children.push( { name: 'br' } );
-						child = itemsToChildren( child.children )
+				_.forEach( helpers.getChildren( item ), function( child ) {
+					if ( _.indexOf( [ 'ul', 'ol' ], helpers.getName( child ) ) !== -1 ) {
+						children.push( [ 'br' ] );
+						children = _.concat( children, unwrap( helpers.getChildren( child ) ) )
+					} else {
+						children.push( child );
 					}
-
-					children.push( child );
 				} );
 			} );
 
 			return children;
 		}
 
-		return {
-			name: 'p',
-			children: itemsToChildren( state.children )
-		};
+		return _.concat( [ 'p' ], unwrap( helpers.getChildren( element ) ) );
 	}
 
 	wp.blocks.registerBlock( {
@@ -70,7 +63,7 @@
 			{
 				icon: 'gridicons-list-unordered',
 				stateSelector: 'ul',
-				onClick: function( block, editor ) {
+				onClick: function( block, helpers ) {
 					// Use native command to toggle current selected list.
 					// TODO: remove editor dependency.
 					editor.execCommand( 'InsertUnorderedList' );

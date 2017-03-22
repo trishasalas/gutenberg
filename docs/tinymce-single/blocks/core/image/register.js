@@ -1,5 +1,12 @@
 ( function( wp ) {
 
+	var schema = (
+		[ 'figure',
+			[ 'img' ],
+			[ 'figcaption' ]
+		]
+	);
+
 	function insertEmpty() {
 		return (
 			'<figure>' +

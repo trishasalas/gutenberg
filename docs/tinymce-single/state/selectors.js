@@ -1,5 +1,5 @@
 window.wp = window.wp || {};
-window.wp.stateSelectors = ( function() {
+window.wp.stateSelectors = ( function( contentHelpers ) {
 
 	function getSelectedBlockIndex( state ) {
 		var start = state.selection.start;
@@ -41,7 +41,7 @@ window.wp.stateSelectors = ( function() {
 		var index = getSelectedBlockIndex( state );
 
 		if ( index !== -1 ) {
-			return state.content[ index ].name;
+			return contentHelpers.getName( state.content[ index ] );
 		}
 	}
 
@@ -49,7 +49,7 @@ window.wp.stateSelectors = ( function() {
 		var index = getSelectedBlockIndex( state );
 
 		if ( index !== -1 ) {
-			return state.content[ index ].attributes;
+			return contentHelpers.getAttributes( state.content[ index ] );
 		}
 	}
 
@@ -77,11 +77,10 @@ window.wp.stateSelectors = ( function() {
 		var index = getSelectedBlockIndex( state );
 
 		if ( index !== -1 ) {
-			var content = state.content[ index ];
-
-			if ( content ) {
-				return content.name === 'p' && ! content.children;
-			}
+			return (
+				contentHelpers.getName( state.content[ index ] ) === 'p' &&
+				contentHelpers.isEmpty( state.content[ index ] )
+			);
 		}
 	}
 
@@ -108,11 +107,11 @@ window.wp.stateSelectors = ( function() {
 		var pointer = state.content;
 
 		return _.filter( state.selection.start, function( index ) {
-			var child = pointer && pointer[ index ];
+			var content = pointer && pointer[ index ];
 
-			if ( child ) {
-				pointer = child.children
-				return child;
+			if ( content ) {
+				pointer = contentHelpers.getChildren( content )
+				return content;
 			}
 		} );
 	}
@@ -164,4 +163,4 @@ window.wp.stateSelectors = ( function() {
 		_getSelectedBlockNode: getSelectedBlockNode,
 		_getSelectedBlockNodes: getSelectedBlockNodes
 	};
-} )();
+} )( window.wp.contentHelpers );

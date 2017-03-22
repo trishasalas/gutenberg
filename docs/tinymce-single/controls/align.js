@@ -8,13 +8,7 @@
 
 	function createIsActive( classNamePrefix, position, normal ) {
 		return function( tag, attributes ) {
-			var classes = '';
-
-			if ( attributes && attributes.class ) {
-				classes = attributes.class
-			}
-
-			var matches = classes.match( new RegExp( classNamePrefix + '([^ ]+)' ) );
+			var matches = ( attributes.class || '' ).match( new RegExp( classNamePrefix + '([^ ]+)' ) );
 
 			if ( matches ) {
 				return position === matches[ 1 ];
