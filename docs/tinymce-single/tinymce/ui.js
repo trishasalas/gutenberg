@@ -3,11 +3,15 @@
 		var editorPadding = 50;
 
 		function getSelectedBlock() {
-			return stateSelectors._getSelectedBlockNode( store.getState(), editor.getBody() );
+			return DOMHelpers.getBlockNode(
+				stateSelectors.getSelectedBlockIndex( store.getState() ), editor.getBody()
+			);
 		}
 
 		function getSelectedBlocks() {
-			return stateSelectors._getSelectedBlockNodes( store.getState(), editor.getBody() );
+			return DOMHelpers.getBlockNodes(
+				stateSelectors.getSelectedBlockIndices( store.getState() ), editor.getBody()
+			);
 		}
 
 		function getSelectedBlockSettings() {
@@ -90,55 +94,47 @@
 			},
 			onClick: function( event ) {
 				if ( event.control && event.control.settings.value ) {
-					var block = getSelectedBlock();
 					var currentSettings = getSelectedBlockSettings();
 					var nextSettings = wp.blocks.getBlockSettings( event.control.settings.value );
 
 					editor.focus();
 
 					var state = store.getState();
-					var oldContent = stateSelectors.getSelectedBlockContent( state );
+					var index = stateSelectors.getSelectedBlockIndex( state );
+					var content = stateSelectors.getContentWithMarkers( state, index );
 
-					oldContent = DOMHelpers.insertMarkerAtPath(
-						oldContent, _.drop( state.selection.start ), '\u0086'
-					);
-
-					var newContent = currentSettings.toBaseState( oldContent, contentHelpers );
+					content = currentSettings.toBaseState( content, contentHelpers );
 
 					// `fromBaseState` always receives list.
-					if ( contentHelpers.isElement( newContent ) ) {
-						newContent = [ newContent ];
+					if ( contentHelpers.isElement( content ) ) {
+						content = [ content ];
 					}
 
-					newContent = nextSettings.fromBaseState( newContent, contentHelpers );
+					content = nextSettings.fromBaseState( content, contentHelpers );
 
-					var oldNode = stateSelectors._getSelectedBlockNode( state, editor.getBody() )
-					var newNode = DOMHelpers.JSONToDOM( newContent );
-					var newPath = DOMHelpers.getPathAtMarker( newContent, '\u0086' );
-					var node = DOMHelpers.findNodeWithPath( newPath, newNode );
-
-					oldNode.parentNode.replaceChild( newNode, oldNode );
-
-					editor.selection.setCursorLocation( node, newPath[ newPath.length - 1 ] );
+					store.dispatch( {
+						type: 'CONTENT_REPLACE_BLOCK',
+						editor: editor,
+						index: index,
+						content: content
+					} );
 				}
 			}
 		} );
 
 		editor.on( 'pastePreProcess', function( event ) {
-			var block = getSelectedBlock();
-			var settings = wp.blocks.getBlockSettingsByElement( block );
+			var settings = getSelectedBlockSettings();
 
-			if ( settings.onPaste ) {
-				settings.onPaste( event, block )
+			if ( settings && settings.onPaste ) {
+				settings.onPaste( event, getSelectedBlock() )
 			}
 		} );
 
 		editor.on( 'click', function( event ) {
-			var block = getSelectedBlock();
-			var settings = wp.blocks.getBlockSettingsByElement( block );
+			var settings = getSelectedBlockSettings();
 
-			if ( settings.onClick ) {
-				settings.onClick( event, block, function() { editor.nodeChanged() } )
+			if ( settings && settings.onClick ) {
+				settings.onClick( event, getSelectedBlock(), function() { editor.nodeChanged() } )
 			}
 		} );
 
@@ -168,10 +164,11 @@
 		} );
 
 		function setFields() {
-			var block = getSelectedBlock();
-			var settings = wp.blocks.getBlockSettingsByElement( block );
+			var settings = getSelectedBlockSettings();
 
 			if ( settings ) {
+				var block = getSelectedBlock();
+
 				if ( settings.editable && settings.editable.length ) {
 					settings.editable.forEach( function( selector ) {
 						editor.$( block ).find( selector ).attr( 'contenteditable', 'true' );
@@ -210,8 +207,7 @@
 				return;
 			}
 
-			var block = getSelectedBlock();
-			var settings = wp.blocks.getBlockSettingsByElement( block );
+			var settings = getSelectedBlockSettings();
 
 			if ( settings && settings.editable && settings.editable.length ) {
 				settings.editable.forEach( function( selector ) {
@@ -233,8 +229,7 @@
 				return;
 			}
 
-			var block = getSelectedBlock();
-			var settings = wp.blocks.getBlockSettingsByElement( block );
+			var settings = getSelectedBlockSettings();
 
 			if ( settings && settings.editable && settings.editable.length ) {
 				settings.editable.forEach( function( selector ) {
@@ -295,57 +290,16 @@
 				editor.$( selected ).attr( 'data-wp-block-selected', 'true' );
 			} );
 
-			function removeBlock() {
-				var $blocks = editor.$( getSelectedBlock() );
-				var p = editor.$( '<p><br></p>' );
-
-				editor.undoManager.transact( function() {
-					$blocks.first().before( p );
-					editor.selection.setCursorLocation( p[0], 0 );
-					$blocks.remove();
-				} );
-			}
-
-			function moveBlockUp() {
-				$blocks = editor.$( getSelectedBlocks() );
-				$first = $blocks.first();
-				$last = $blocks.last();
-				$prev = $first.prev();
-
-				rect = $first[0].getBoundingClientRect();
-
-				if ( $prev.length ) {
-					editor.undoManager.transact( function() {
-						$last.after( $prev );
-					} );
-
-					editor.nodeChanged( { _WPBlockMoved: true } );
-					window.scrollBy( 0, - rect.top + $first[0].getBoundingClientRect().top );
-				}
-			}
-
-			function moveBlockDown() {
-				$blocks = editor.$( getSelectedBlocks() );
-				$first = $blocks.first();
-				$last = $blocks.last();
-				$next = $last.next();
-
-				rect = $first[0].getBoundingClientRect();
-
-				if ( $next.length ) {
-					editor.undoManager.transact( function() {
-						$first.before( $next );
-					} );
-
-					editor.nodeChanged( { _WPBlockMoved: true } );
-					window.scrollBy( 0, - rect.top + $first[0].getBoundingClientRect().top );
-				}
-			}
-
 			editor.addButton( 'up', {
 				icon: 'gridicons-chevron-up',
 				tooltip: 'Up',
-				onClick: moveBlockUp,
+				onClick: function() {
+					store.dispatch( {
+						type: 'CONTENT_MOVE_UP',
+						editor: editor,
+						indices: stateSelectors.getSelectedBlockIndices( store.getState() )
+					} );
+				},
 				classes: 'widget btn move-up',
 				onPostRender: function() {
 					var button = this;
@@ -359,7 +313,13 @@
 			editor.addButton( 'down', {
 				icon: 'gridicons-chevron-down',
 				tooltip: 'Down',
-				onClick: moveBlockDown,
+				onClick: function() {
+					store.dispatch( {
+						type: 'CONTENT_MOVE_DOWN',
+						editor: editor,
+						indices: stateSelectors.getSelectedBlockIndices( store.getState() )
+					} );
+				},
 				classes: 'widget btn move-down',
 				onPostRender: function() {
 					var button = this;
@@ -483,9 +443,14 @@
 								dragging: false
 							} );
 
-							store.dispatch( { type: 'SHOW_UI' } );
+							store.dispatch( {
+								type: 'SET_CONTENT',
+								content: DOMHelpers.DOMToJSON( editor.getBody(), true )
+							} );
 
-							editor.nodeChanged( { _WPBlockMoved: true } );
+							editor.nodeChanged();
+
+							store.dispatch( { type: 'SHOW_UI' } );
 						}
 					} );
 				}
@@ -559,8 +524,6 @@
 
 					function onClick( callback, settings ) {
 						return function() {
-							block = getSelectedBlock()
-
 							var content = callback.apply( this, arguments );
 							var args = {
 									format: 'html',
@@ -572,16 +535,12 @@
 							if ( content ) {
 								editor.fire( 'beforeSetContent', args );
 
-								if ( typeof content === 'string' ) {
-									var temp = document.createElement( 'div' );
-									temp.innerHTML = content;
-									content = temp.firstChild;
-									temp = null;
-								} else {
-									content = DOMHelpers.JSONToDOM( content );
-								}
-
-								block.parentNode.replaceChild( content, block );
+								store.dispatch( {
+									type: 'CONTENT_REPLACE_BLOCK',
+									editor: editor,
+									index: stateSelectors.getSelectedBlockIndex( store.getState() ),
+									content: content
+								} );
 
 								if ( ! settings.elements ) {
 									content.setAttribute( 'data-wp-block-type', settings._id );
@@ -589,8 +548,6 @@
 
 								editor.fire( 'setContent', args );
 							}
-
-							window.wp.blocks.selectBlock( content );
 						}
 					}
 
@@ -684,8 +641,6 @@
 
 						var editableRoot = DOMHelpers.getEditableRoot( selection.anchorNode );
 
-						// console.log(settings.editable, selection.anchorNode, editableRoot)
-
 						settings.editable.forEach( function( selector ) {
 							if ( selector ) {
 								if ( editor.$( editableRoot ).is( selector ) ) {
@@ -708,17 +663,16 @@
 
 			function createBlockNavigation() {
 				var navigation = editor.wp._createToolbar( [ 'up', 'down' ] );
-				var previousIndex;
 
 				navigation.$el.addClass( 'block-toolbar' );
 
 				observeStore( store, [
 					stateSelectors.isUIShown,
-					stateSelectors.getSelectedBlockIndex,
+					stateSelectors.getSelectedBlockIndices,
 					stateSelectors.getSelectedBlockContent
-				], function( shown, index ) {
-					if ( shown && index !== -1 ) {
-						navigation.reposition( getSelectedBlock() );
+				], function( shown, indices ) {
+					if ( shown && indices.length ) {
+						navigation.reposition( getSelectedBlocks()[0] );
 					} else {
 						navigation.hide();
 					}

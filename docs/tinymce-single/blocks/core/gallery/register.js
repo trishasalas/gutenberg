@@ -21,7 +21,8 @@
 							} ]
 						],
 						[ 'p', 'Pick image' ]
-					]
+					],
+					[ 'figcaption' ]
 				],
 				[ 'figure',
 					[ 'div', { class: 'wp-blocks-placeholder' },
@@ -32,34 +33,11 @@
 							} ]
 						],
 						[ 'p', 'Pick image' ]
-					]
+					],
+					[ 'figcaption' ]
 				]
 			]
 		);
-	}
-
-	function onSelect( block ) {
-		var figures = block.querySelectorAll( 'figure' );
-		var figcaption;
-
-		for ( var i = 0; i < figures.length; i++ ) {
-			figcaption = figures[ i ].querySelector( 'figcaption' );
-
-			if ( ! figcaption ) {
-				figures[ i ].insertAdjacentHTML( 'beforeend',
-					'<figcaption><br></figcaption>' );
-			}
-		}
-	}
-
-	function onDeselect( block ) {
-		var figcaptions = block.querySelectorAll( 'figcaption' );
-
-		for ( var i = 0; i < figcaptions.length; i++ ) {
-			if ( ! figcaptions[ i ].textContent ) {
-				figcaptions[ i ].parentNode.removeChild( figcaptions[ i ] );
-			}
-		}
 	}
 
 	function pickTarget( parents, child ) {
@@ -122,8 +100,6 @@
 			}
 		],
 		insert: insertEmpty,
-		onSelect: onSelect,
-		onDeselect: onDeselect,
 		onClick: onClick
 	} );
 

@@ -397,6 +397,14 @@ div.mce-inline-toolbar-grp.block-toolbar > div.mce-stack-layout {
 	pointer-events: none;
 }
 
+figure figcaption[data-wp-placeholder] {
+	display: none;
+}
+
+figure[data-wp-block-selected] figcaption[data-wp-placeholder] {
+	display: block;
+}
+
 .hidden {
 	visibility: hidden;
 }

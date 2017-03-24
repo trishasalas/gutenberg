@@ -10,9 +10,8 @@
 				icon: 'gridicons-heading',
 				text: level,
 				stateSelector: 'h' + level,
-				onClick: function( content, helpers ) {
-					console.log(helpers)
-					return helpers.setName( content, 'h' + level );
+				onClick: function( element, helpers ) {
+					return helpers.setName( element, 'h' + level );
 				}
 			} );
 		} );

@@ -1,5 +1,5 @@
 window.wp = window.wp || {};
-window.wp.stateSelectors = ( function( contentHelpers ) {
+window.wp.stateSelectors = ( function( h ) {
 
 	function getSelectedBlockIndex( state ) {
 		var start = state.selection.start;
@@ -41,7 +41,7 @@ window.wp.stateSelectors = ( function( contentHelpers ) {
 		var index = getSelectedBlockIndex( state );
 
 		if ( index !== -1 ) {
-			return contentHelpers.getName( state.content[ index ] );
+			return h.getName( state.content[ index ] );
 		}
 	}
 
@@ -49,25 +49,25 @@ window.wp.stateSelectors = ( function( contentHelpers ) {
 		var index = getSelectedBlockIndex( state );
 
 		if ( index !== -1 ) {
-			return contentHelpers.getAttributes( state.content[ index ] );
+			return h.getAttributes( state.content[ index ] );
 		}
 	}
 
 	function hasPreviousBlock( state ) {
-		var index = getSelectedBlockIndex( state );
+		var indices = getSelectedBlockIndices( state );
 
-		if ( index !== -1 ) {
-			return !! state.content[ index - 1 ];
+		if ( indices.length ) {
+			return !! state.content[ indices[ 0 ] - 1 ];
 		}
 
 		return false;
 	}
 
 	function hasNextBlock( state ) {
-		var index = getSelectedBlockIndex( state );
+		var indices = getSelectedBlockIndices( state );
 
-		if ( index !== -1 ) {
-			return !! state.content[ index + 1 ];
+		if ( indices.length ) {
+			return !! state.content[ indices[ indices.length - 1 ] + 1 ];
 		}
 
 		return false;
@@ -78,8 +78,8 @@ window.wp.stateSelectors = ( function( contentHelpers ) {
 
 		if ( index !== -1 ) {
 			return (
-				contentHelpers.getName( state.content[ index ] ) === 'p' &&
-				contentHelpers.isEmpty( state.content[ index ] )
+				h.getName( state.content[ index ] ) === 'p' &&
+				h.isEmpty( state.content[ index ] )
 			);
 		}
 	}
@@ -110,39 +110,48 @@ window.wp.stateSelectors = ( function( contentHelpers ) {
 			var content = pointer && pointer[ index ];
 
 			if ( content ) {
-				pointer = contentHelpers.getChildren( content )
+				pointer = h.getChildren( content )
 				return content;
 			}
 		} );
 	}
 
-	/**
-	 * Internal. Maps state to real DOM.
-	 */
-
-	function getSelectedBlockNode( state, rootNode ) {
-		var index = getSelectedBlockIndex( state );
-
-		if ( index !== -1 ) {
-			return rootNode.childNodes[ index ] || rootNode.firstChild;
+	function getContent( state, index ) {
+		if ( index != null && index !== -1 ) {
+			return state.content[ index ];
 		}
 
-		return rootNode.firstChild;
+		return state.content;
 	}
 
-	function getSelectedBlockNodes( state, rootNode ) {
-		var indices = getSelectedBlockIndices( state );
-		var blocks = [];
+	function getContentWithMarkers( state, index ) {
+		var content = _insertMarkersAtPath( getContent( state ), state.selection.start, '\u0086' );
 
-		indices.forEach( function( index ) {
-			var node = rootNode.childNodes[ index ];
+		if ( index != null && index !== -1 ) {
+			return content[ index ];
+		}
 
-			if ( node ) {
-				blocks.push( node );
+		return content;
+	}
+
+	function _insertMarkersAtPath( content, path, marker ) {
+		var index = _.first( path );
+
+		function map( element, i ) {
+			if ( i === index ) {
+				return _insertMarkersAtPath( element, _.drop( path ), marker );
 			}
-		} );
 
-		return blocks;
+			return element;
+		}
+
+		if ( h.isText( content ) ) {
+			return content.slice( 0, index ) + marker + content.slice( index );
+		} else if ( h.isElement( content ) ) {
+			return h.setChildren( content, _.map( h.getChildren( content ), map ) );
+		}
+
+		return _.map( content, map );
 	}
 
 	return {
@@ -159,8 +168,7 @@ window.wp.stateSelectors = ( function( contentHelpers ) {
 		getSelectedNodePath: getSelectedNodePath,
 		getSelectedBlockName: getSelectedBlockName,
 		getSelectedBlockAttributes: getSelectedBlockAttributes,
-
-		_getSelectedBlockNode: getSelectedBlockNode,
-		_getSelectedBlockNodes: getSelectedBlockNodes
+		getContent: getContent,
+		getContentWithMarkers: getContentWithMarkers
 	};
 } )( window.wp.contentHelpers );

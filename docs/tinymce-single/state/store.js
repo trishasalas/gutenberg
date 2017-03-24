@@ -1,4 +1,4 @@
-window.store = ( function( Redux, _ ) {
+window.store = ( function( Redux, _, middleware ) {
 
 	var initialState = {
 		content: [],
@@ -14,8 +14,6 @@ window.store = ( function( Redux, _ ) {
 	};
 
 	return Redux.createStore( function( state, action ) {
-		window.console.log( action );
-
 		if ( action.type === 'SET_CONTENT' ) {
 			state = _.assign( {}, state, {
 				content: _.concat( action.content )
@@ -67,9 +65,9 @@ window.store = ( function( Redux, _ ) {
 		}
 
 		return state;
-	}, initialState );
+	}, initialState, Redux.applyMiddleware( middleware ) );
 
-})( window.Redux, window._ );
+})( window.Redux, window._, window.wp.mce.middleware );
 
 window.wp.storeHelpers = ( function( _ ) {
 

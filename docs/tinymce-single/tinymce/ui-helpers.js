@@ -160,26 +160,20 @@
 
 					function onClick( callback ) {
 						return function() {
-							editor.undoManager.transact( function() {
-								var state = store.getState();
-								var oldContent = wp.stateSelectors.getSelectedBlockContent( state );
+							var state = store.getState();
+							var index = wp.stateSelectors.getSelectedBlockIndex( state );
+							var content = wp.stateSelectors.getContentWithMarkers( state, index );
 
-								oldContent = wp.DOMHelpers.insertMarkerAtPath(
-									oldContent, _.drop( state.selection.start ), '\u0086'
-								);
+							content = callback( content, wp.contentHelpers, editor );
 
-								var newContent = callback( oldContent, wp.contentHelpers, editor );
-
-								if ( newContent ) {
-									var oldNode = wp.stateSelectors._getSelectedBlockNode( state, editor.getBody() )
-									var newNode = wp.DOMHelpers.JSONToDOM( newContent );
-									var newPath = wp.DOMHelpers.getPathAtMarker( newContent, '\u0086' );
-									var node = wp.DOMHelpers.findNodeWithPath( newPath, newNode );
-
-									oldNode.parentNode.replaceChild( newNode, oldNode );
-									editor.selection.setCursorLocation( node, newPath[ newPath.length - 1 ] );
-								}
-							} );
+							if ( content ) {
+								store.dispatch( {
+									type: 'CONTENT_REPLACE_BLOCK',
+									editor: editor,
+									index: index,
+									content: content
+								} );
+							}
 						}
 					}
 

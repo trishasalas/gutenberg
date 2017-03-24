@@ -3,38 +3,25 @@
 	var schema = (
 		[ 'figure',
 			[ 'img' ],
-			[ 'figcaption' ]
+			[ 'figcaption?' ]
 		]
 	);
 
 	function insertEmpty() {
 		return (
-			'<figure>' +
-				'<div class="wp-blocks-placeholder">' +
-					'<svg width="48" height="48">' +
-						'<use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="../shared/gridicons.svg#gridicons-add-outline"></use>' +
-					'</svg>' +
-					'<p>Pick image</p>' +
-				'</div>' +
-			'</figure>'
+			[ 'figure',
+				[ 'div', { class: 'wp-blocks-placeholder' },
+					[ 'svg', { width: '48', height: '48' },
+						[ 'use', {
+							'xmlns:xlink': 'http://www.w3.org/1999/xlink',
+							'xlink:href': '../shared/gridicons.svg#gridicons-add-outline'
+						} ]
+					],
+					[ 'p', 'Pick image' ]
+				],
+				[ 'figcaption' ]
+			]
 		);
-	}
-
-	function onSelect( block ) {
-		var figcaption = block.querySelector( 'figcaption' );
-
-		if ( ! figcaption ) {
-			block.insertAdjacentHTML( 'beforeend',
-				'<figcaption><br></figcaption>' );
-		}
-	}
-
-	function onDeselect( block ) {
-		var figcaption = block.querySelector( 'figcaption' );
-
-		if ( figcaption && ! figcaption.textContent ) {
-			block.removeChild( figcaption );
-		}
 	}
 
 	function pickTarget( parents, child ) {
@@ -93,8 +80,6 @@
 			'block-align-full'
 		],
 		insert: insertEmpty,
-		onSelect: onSelect,
-		onDeselect: onDeselect,
 		onClick: onClick
 	} );
 

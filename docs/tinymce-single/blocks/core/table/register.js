@@ -12,26 +12,10 @@
 						[ 'td' ],
 						[ 'td' ]
 					]
-				]
+				],
+				[ 'figcaption' ]
 			]
 		);
-	}
-
-	function onSelect( block ) {
-		var figcaption = block.querySelector( 'figcaption' );
-
-		if ( ! figcaption ) {
-			block.insertAdjacentHTML( 'beforeend',
-				'<figcaption><br></figcaption>' );
-		}
-	}
-
-	function onDeselect( block ) {
-		var figcaption = block.querySelector( 'figcaption' );
-
-		if ( figcaption && ! figcaption.textContent ) {
-			block.removeChild( figcaption );
-		}
 	}
 
 	wp.blocks.registerBlock( {
@@ -45,8 +29,6 @@
 			figcaption: 'Write caption\u2026'
 		},
 		insert: insertEmpty,
-		onSelect: onSelect,
-		onDeselect: onDeselect,
 		controls: [
 			'block-align-left',
 			'block-align-center',
@@ -56,27 +38,27 @@
 			{
 				classes: 'gridicons-rotate',
 				icon: 'gridicons-indent-right',
-				onClick: function( block, editor ) {
-					editor.execCommand( 'mceTableInsertRowBefore' );
+				onClick: function( element, helpers ) {
+					// editor.execCommand( 'mceTableInsertRowBefore' );
 				}
 			},
 			{
 				classes: 'gridicons-rotate',
 				icon: 'gridicons-indent-left',
-				onClick: function( block, editor ) {
-					editor.execCommand( 'mceTableInsertRowAfter' );
+				onClick: function( element, helpers ) {
+					// editor.execCommand( 'mceTableInsertRowAfter' );
 				}
 			},
 			{
 				icon: 'gridicons-indent-right',
-				onClick: function( block, editor ) {
-					editor.execCommand( 'mceTableInsertColBefore' );
+				onClick: function( element, helpers ) {
+					// editor.execCommand( 'mceTableInsertColBefore' );
 				}
 			},
 			{
 				icon: 'gridicons-indent-left',
-				onClick: function( block, editor ) {
-					editor.execCommand( 'mceTableInsertColAfter' );
+				onClick: function( element, helpers ) {
+					// editor.execCommand( 'mceTableInsertColAfter' );
 				}
 			},
 			{

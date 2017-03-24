@@ -308,24 +308,6 @@ window.wp.DOMHelpers = ( function( contentHelpers ) {
 		}
 	}
 
-	function insertMarkerAtPath( state, path, marker ) {
-		var index = _.first( path );
-
-		if ( contentHelpers.isText( state ) ) {
-			return state.slice( 0, index ) + marker + state.slice( index );
-		}
-
-		return contentHelpers.setChildren( state,
-			_.map( contentHelpers.getChildren( state ), function( child, i ) {
-				if ( i === index ) {
-					return insertMarkerAtPath( child, _.drop( path ), marker );
-				}
-
-				return child;
-			} )
-		);
-	}
-
 	function getPathAtMarker( state, marker ) {
 		if ( contentHelpers.isText( state ) ) {
 			var index = state.indexOf( marker );
@@ -350,6 +332,26 @@ window.wp.DOMHelpers = ( function( contentHelpers ) {
 		}
 	}
 
+	function getBlockNode( index, rootNode ) {
+		if ( index !== -1 ) {
+			return rootNode.childNodes[ index ];
+		}
+	}
+
+	function getBlockNodes( indices, rootNode ) {
+		var blocks = [];
+
+		indices.forEach( function( index ) {
+			var node = rootNode.childNodes[ index ];
+
+			if ( node ) {
+				blocks.push( node );
+			}
+		} );
+
+		return blocks;
+	}
+
 	return {
 		DOMToJSON: DOMToJSON,
 		JSONToDOM: JSONToDOM,
@@ -359,8 +361,9 @@ window.wp.DOMHelpers = ( function( contentHelpers ) {
 		createSelectionPath: createSelectionPath,
 		getParentBlock: getParentBlock,
 		getEditableRoot: getEditableRoot,
-		insertMarkerAtPath: insertMarkerAtPath,
-		getPathAtMarker: getPathAtMarker
+		getPathAtMarker: getPathAtMarker,
+		getBlockNode: getBlockNode,
+		getBlockNodes: getBlockNodes
 	};
 
 } )( window.wp.contentHelpers );

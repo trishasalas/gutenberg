@@ -100,15 +100,13 @@
 					} );
 				}
 
-				var moved = event._WPBlockMoved;
-
 				// A block has been deleted.
 				// Quick check.
-				if ( moved || state.content.length !== rootNode.children.length ) {
+				if ( state.content.length !== rootNode.children.length ) {
 					var newContent = DOMHelpers.DOMToJSON( rootNode, true );
 
 					// Actual check.
-					if ( moved || state.content.length !== newContent.length ) {
+					if ( state.content.length !== newContent.length ) {
 						store.dispatch( {
 							type: 'SET_CONTENT',
 							content: newContent
@@ -118,9 +116,11 @@
 					}
 				}
 
-				if ( stateSelectors.getSelectedBlockIndex( state ) !== -1 ) {
+				var index = stateSelectors.getSelectedBlockIndex( state );
+
+				if ( index !== -1 ) {
 					var currentContent = stateSelectors.getSelectedBlockContent( state );
-					var blockNode = stateSelectors._getSelectedBlockNode( state, rootNode );
+					var blockNode = DOMHelpers.getBlockNode( index, rootNode );
 					var blockContent = DOMHelpers.DOMToJSON( blockNode );
 
 					// A block has been updated.

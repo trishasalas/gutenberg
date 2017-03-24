@@ -1,6 +1,10 @@
 window.wp = window.wp || {};
 window.wp.contentHelpers = ( function( _ ) {
 
+	function create() {
+		return Array.from( arguments );
+	}
+
 	function isText( content ) {
 		return _.isString( content );
 	}
@@ -71,7 +75,7 @@ window.wp.contentHelpers = ( function( _ ) {
 		return getChildren( content ).length === 0;
 	}
 
-	return {
+	return _.extend( create, {
 		isText: isText,
 		isElement: isElement,
 		isEmpty: isEmpty,
@@ -82,6 +86,6 @@ window.wp.contentHelpers = ( function( _ ) {
 		getChild: getChild,
 		getChildren: getChildren,
 		setChildren: setChildren
-	}
+	} );
 
 } )( window._ );

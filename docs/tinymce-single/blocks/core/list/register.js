@@ -45,6 +45,20 @@
 		return _.concat( [ 'p' ], unwrap( helpers.getChildren( element ) ) );
 	}
 
+	function changeListType( element, type, h ) {
+		var result = h.setName( element, type );
+
+		return h.setChildren( result, _.map( h.getChildren( result ), function( item ) {
+			return h.setChildren( item, _.map( h.getChildren( item ), function( child ) {
+				if ( _.indexOf( [ 'ul', 'ol' ], h.getName( child ) ) !== -1 ) {
+					return changeListType( child, type, h );
+				}
+
+				return child;
+			} ) );
+		} ) );
+	}
+
 	wp.blocks.registerBlock( {
 		name: 'list',
 		namespace: 'wp',
@@ -63,19 +77,15 @@
 			{
 				icon: 'gridicons-list-unordered',
 				stateSelector: 'ul',
-				onClick: function( block, helpers ) {
-					// Use native command to toggle current selected list.
-					// TODO: remove editor dependency.
-					editor.execCommand( 'InsertUnorderedList' );
+				onClick: function( element, helpers ) {
+					return changeListType( element, 'ul', helpers );
 				}
 			},
 			{
 				icon: 'gridicons-list-ordered',
 				stateSelector: 'ol',
-				onClick: function( block, editor ) {
-					// Use native command to toggle current selected list.
-					// TODO: remove editor dependency.
-					editor.execCommand( 'InsertOrderedList' );
+				onClick: function( element, helpers ) {
+					return changeListType( element, 'ol', helpers );
 				}
 			}
 		]
