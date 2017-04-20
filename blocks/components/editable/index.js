@@ -44,9 +44,9 @@ export default class Editable extends wp.element.Component {
 	onSetup( editor ) {
 		this.editor = editor;
 		editor.on( 'init', this.onInit );
-		editor.on( 'focusout', this.onChange );
 		editor.on( 'NewBlock', this.onNewBlock );
 		editor.on( 'focusin', this.onFocus );
+		editor.on( 'input', this.onChange );
 	}
 
 	onInit() {
@@ -65,12 +65,13 @@ export default class Editable extends wp.element.Component {
 	}
 
 	onChange() {
-		if ( ! this.editor.isDirty() ) {
-			return;
+		if ( this.props.onChange ) {
+			const value = this.editor.getContent();
+
+			if ( value !== this.props.value ) {
+				this.props.onChange( value );
+			}
 		}
-		const value = this.editor.getContent();
-		this.editor.save();
-		this.props.onChange( value );
 	}
 
 	onNewBlock() {
@@ -155,14 +156,15 @@ export default class Editable extends wp.element.Component {
 	}
 
 	render() {
-		const { tagName: Tag = 'div', style, className } = this.props;
-		const classes = classnames( 'blocks-editable', className );
+		const { tagName: Tag = 'div', style, className, value, placeholder } = this.props;
+		const classes = classnames( 'blocks-editable', className, { 'is-empty': ! value } );
 
 		return (
 			<Tag
 				ref={ this.bindNode }
 				style={ style }
-				className={ classes } />
+				className={ classes }
+				placeholder={ placeholder } />
 		);
 	}
 }
