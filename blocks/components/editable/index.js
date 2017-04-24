@@ -9,8 +9,11 @@ import { Parser as HtmlToReactParser } from 'html-to-react';
  * Internal dependencies
  */
 import './style.scss';
+import paste from './paste';
 
 const htmlToReactParser = new HtmlToReactParser();
+
+const plugins = [ paste ];
 
 export default class Editable extends wp.element.Component {
 	constructor() {
@@ -36,6 +39,7 @@ export default class Editable extends wp.element.Component {
 			browser_spellcheck: true,
 			entity_encoding: 'raw',
 			setup: this.onSetup,
+			plugins: [ 'paste' ],
 			formats: {
 				strikethrough: { inline: 'del' }
 			}
@@ -50,6 +54,8 @@ export default class Editable extends wp.element.Component {
 		editor.on( 'focusout', this.onChange );
 		editor.on( 'NewBlock', this.onNewBlock );
 		editor.on( 'focusin', this.onFocus );
+
+		plugins.forEach( plugin => plugin( editor ) );
 	}
 
 	onInit() {
