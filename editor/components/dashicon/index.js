@@ -986,7 +986,7 @@ export default class Dashicon extends wp.element.Component {
 		const iconClass = [ 'dashicon', icon, className ].filter( Boolean ).join( ' ' );
 
 		return (
-			<svg aria-hidden="true" className={ iconClass } xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20">
+			<svg className={ iconClass } xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20">
 				{ title ? <title>{ title }</title> : null }
 				<path d={ path } />
 			</svg>
