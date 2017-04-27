@@ -28,8 +28,8 @@
 		color: #00aadc;
 	}
 
-	& .insert {
-		margin: 0 auto; /* Safari 10. */
+	.dashicon.insert {
+		margin: 0 auto; // Fixes horizontal alignment in Safari 10.
 	}
 }
 
