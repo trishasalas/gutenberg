@@ -16,6 +16,7 @@ class InserterMenu extends wp.element.Component {
 			filterValue: ''
 		};
 		this.filter = this.filter.bind( this );
+		this.instanceId = this.constructor.instances++;
 	}
 
 	filter( event ) {
@@ -84,11 +85,11 @@ class InserterMenu extends wp.element.Component {
 						) )
 					}
 				</div>
-				<label htmlFor={ `editor-inserter__search-${ position }` } className="screen-reader-text">
+				<label htmlFor={ `editor-inserter__search-${ this.instanceId }` } className="screen-reader-text">
 					{ wp.i18n.__( 'Search blocks' ) }
 				</label>
 				<input
-					id={ `editor-inserter__search-${ position }` }
+					id={ `editor-inserter__search-${ this.instanceId }` }
 					type="search"
 					placeholder={ wp.i18n.__( 'Search…' ) }
 					className="editor-inserter__search"
@@ -98,6 +99,8 @@ class InserterMenu extends wp.element.Component {
 		);
 	}
 }
+
+InserterMenu.instances = 0;
 
 export default connect(
 	undefined,
