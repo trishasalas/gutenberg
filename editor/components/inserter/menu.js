@@ -58,7 +58,7 @@ class InserterMenu extends wp.element.Component {
 							<div key={ category.slug }>
 								<div
 									className="editor-inserter__separator"
-									id={ `editor-inserter__separator-${ category.slug }` }
+									id={ `editor-inserter__separator-${ category.slug }-${ this.instanceId }` }
 									aria-hidden="true"
 								>
 									{ category.title }
@@ -67,7 +67,7 @@ class InserterMenu extends wp.element.Component {
 									className="editor-inserter__category-blocks"
 									role="menu"
 									tabIndex="0"
-									aria-labelledby={ `editor-inserter__separator-${ category.slug }` }
+									aria-labelledby={ `editor-inserter__separator-${ category.slug }-${ this.instanceId }` }
 								>
 									{ blocksByCategory[ category.slug ].map( ( { slug, title, icon } ) => (
 										<button
