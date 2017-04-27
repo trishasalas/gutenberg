@@ -24,8 +24,13 @@
 	padding: 0;
 	transition: color .2s ease;
 
-	&:hover {
+	&:hover,
+	&:focus {
 		color: #00aadc;
+	}
+
+	&:focus {
+		outline: 1px solid #00aadc;
 	}
 }
 
@@ -142,9 +147,11 @@ input[type=search].editor-inserter__search {
 	border: 1px solid transparent;
 	background: none;
 
-	&:hover {
+	&:hover,
+	&:focus {
 		border: 1px solid $dark-gray-500;
 		position: relative;
+		outline: 0;
 	}
 
 	&:active,
