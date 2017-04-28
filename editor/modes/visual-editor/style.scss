@@ -10,6 +10,11 @@
 	}
 }
 
+.editor-visual-editor__blocks {
+	display: flex;
+	flex-direction: column;
+}
+
 .editor-visual-editor__block {
 	position: relative;
 	border: 2px solid transparent;
