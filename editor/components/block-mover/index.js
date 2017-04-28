@@ -1,6 +1,7 @@
 /**
  * External dependencies
  */
+import { Slot } from 'react-slot-fill';
 import { connect } from 'react-redux';
 import classnames from 'classnames';
 import { first, last } from 'lodash';
@@ -14,6 +15,7 @@ import IconButton from 'components/icon-button';
 function BlockMover( { onMoveUp, onMoveDown, isFirst, isLast } ) {
 	return (
 		<div className="editor-block-mover">
+			<Slot name="Mover" />
 			<IconButton
 				className={ classnames( 'editor-block-mover__control', { 'is-disabled': isFirst } ) }
 				onClick={ onMoveUp }

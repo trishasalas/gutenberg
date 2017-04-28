@@ -1,10 +1,18 @@
 /**
+ * External dependencies
+ */
+import { Fill } from 'react-slot-fill';
+
+/**
  * Internal dependencies
  */
 import { registerBlock, query } from 'api';
 import Editable from 'components/editable';
+import Inserter from '../../../editor/components/inserter';
 
 const { children } = query;
+
+const DEFAULT_CONTENT = <p />;
 
 registerBlock( 'core/text', {
 	title: wp.i18n.__( 'Text' ),
@@ -18,7 +26,7 @@ registerBlock( 'core/text', {
 	},
 
 	defaultAttributes: {
-		content: <p />
+		content: DEFAULT_CONTENT
 	},
 
 	controls: [
@@ -56,9 +64,11 @@ registerBlock( 'core/text', {
 
 	edit( { attributes, setAttributes, insertBlockAfter, focus, setFocus, mergeWithPrevious } ) {
 		const { content, align } = attributes;
+		const isEmpty = ( ! content || content === DEFAULT_CONTENT );
 
-		return (
+		const editable = (
 			<Editable
+				key="editable"
 				value={ content }
 				onChange={ ( nextContent ) => {
 					setAttributes( {
@@ -70,13 +80,31 @@ registerBlock( 'core/text', {
 				style={ align ? { textAlign: align } : null }
 				onSplit={ ( before, after ) => {
 					setAttributes( { content: before } );
-					insertBlockAfter( wp.blocks.createBlock( 'core/text', {
-						content: after
-					} ) );
+
+					let afterBlockAttributes;
+					if ( after ) {
+						afterBlockAttributes = { content: after };
+					}
+
+					insertBlockAfter( wp.blocks.createBlock(
+						'core/text',
+						afterBlockAttributes
+					) );
 				} }
 				onMerge={ mergeWithPrevious }
 			/>
 		);
+
+		if ( focus && isEmpty ) {
+			return [
+				<Fill key="inserter" name="Mover">
+					<Inserter />
+				</Fill>,
+				editable
+			];
+		}
+
+		return editable;
 	},
 
 	save( { attributes } ) {
