@@ -20,7 +20,7 @@ msgid "Embed"
 msgstr ""
 
 #: blocks/library/embed/index.js:33
-#: blocks/library/image/index.js:81
+#: blocks/library/image/index.js:101
 msgid "Write caption…"
 msgstr ""
 
@@ -36,30 +36,38 @@ msgstr ""
 msgid "Heading %s"
 msgstr ""
 
-#: blocks/library/image/index.js:25
-msgid "Image"
-msgstr ""
-
-#: blocks/library/image/index.js:41
+#: blocks/library/image/index.js:44
 #: blocks/library/list/index.js:25
 #: blocks/library/text/index.js:27
 msgid "Align left"
 msgstr ""
 
-#: blocks/library/image/index.js:47
+#: blocks/library/image/index.js:50
 #: blocks/library/list/index.js:33
 #: blocks/library/text/index.js:35
 msgid "Align center"
 msgstr ""
 
-#: blocks/library/image/index.js:53
+#: blocks/library/image/index.js:56
 #: blocks/library/list/index.js:41
 #: blocks/library/text/index.js:43
 msgid "Align right"
 msgstr ""
 
-#: blocks/library/image/index.js:59
+#: blocks/library/image/index.js:62
 msgid "No alignment"
+msgstr ""
+
+#: blocks/library/image/index.js:83
+msgid "Image"
+msgstr ""
+
+#: blocks/library/image/index.js:86
+msgid "Drag image here or insert from media library"
+msgstr ""
+
+#: blocks/library/image/index.js:89
+msgid "Insert from Media Library"
 msgstr ""
 
 #: blocks/library/list/index.js:11
