@@ -20,7 +20,7 @@ msgid "Embed"
 msgstr ""
 
 #: blocks/library/embed/index.js:33
-#: blocks/library/image/index.js:81
+#: blocks/library/image/index.js:75
 msgid "Write caption…"
 msgstr ""
 
@@ -56,10 +56,6 @@ msgstr ""
 #: blocks/library/list/index.js:41
 #: blocks/library/text/index.js:43
 msgid "Align right"
-msgstr ""
-
-#: blocks/library/image/index.js:59
-msgid "No alignment"
 msgstr ""
 
 #: blocks/library/list/index.js:11
