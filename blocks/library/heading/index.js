@@ -1,9 +1,4 @@
 /**
- * External dependencies
- */
-import { isString } from 'lodash';
-
-/**
  * Internal dependencies
  */
 import { registerBlock, query } from 'api';
@@ -43,9 +38,13 @@ registerBlock( 'core/heading', {
 				blocks: [ 'core/text' ],
 				transform: ( { content, align } ) => {
 					if ( Array.isArray( content ) ) {
-						content = wp.element.concatChildren( content.map( ( elt ) =>
-							! elt || isString( elt ) || elt.type !== 'p' ? elt : elt.props.children
-						) );
+						return content.map( ( elt ) => {
+							return {
+								nodeName: 'H2',
+								content: elt,
+								align
+							};
+						} );
 					}
 					return {
 						nodeName: 'H2',
