@@ -153,7 +153,7 @@ class VisualEditorBlock extends wp.element.Component {
 		return (
 			<div
 				ref={ this.bindBlockNode }
-				tabIndex="0"
+				tabIndex={ order }
 				onFocus={ onSelect }
 				onBlur={ this.maybeDeselect }
 				onKeyDown={ onStartTyping }
