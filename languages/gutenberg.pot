@@ -110,12 +110,40 @@ msgstr ""
 msgid "Post Settings"
 msgstr ""
 
-#: editor/header/tools/publish-button.js:14
+#: editor/header/tools/publish-button.js:28
+msgid "Publishing..."
+msgstr ""
+
+#: editor/header/tools/publish-button.js:30
+msgid "Updating..."
+msgstr ""
+
+#: editor/header/tools/publish-button.js:34
+msgid "Published!"
+msgstr ""
+
+#: editor/header/tools/publish-button.js:36
+msgid "Updated!"
+msgstr ""
+
+#: editor/header/tools/publish-button.js:40
+msgid "Publish failed"
+msgstr ""
+
+#: editor/header/tools/publish-button.js:42
+msgid "Update failed"
+msgstr ""
+
+#: editor/header/tools/publish-button.js:46
 msgid "Update"
 msgstr ""
 
-#: editor/header/tools/publish-button.js:17
+#: editor/header/tools/publish-button.js:48
 msgid "Publish"
+msgstr ""
+
+#: editor/header/tools/publish-button.js:88
+msgid "An unknown error occurred."
 msgstr ""
 
 #: editor/header/mode-switcher/index.js:24
