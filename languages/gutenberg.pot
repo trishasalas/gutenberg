@@ -142,7 +142,7 @@ msgstr ""
 msgid "Publish"
 msgstr ""
 
-#: editor/header/tools/publish-button.js:88
+#: editor/header/tools/publish-button.js:96
 msgid "An unknown error occurred."
 msgstr ""
 
