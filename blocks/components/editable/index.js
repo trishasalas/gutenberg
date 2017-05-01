@@ -2,7 +2,7 @@
  * External dependencies
  */
 import classnames from 'classnames';
-import { last, isEqual, capitalize, forEach } from 'lodash';
+import { last, isEqual, capitalize, forEach, merge } from 'lodash';
 import { Parser as HtmlToReactParser } from 'html-to-react';
 import { Fill } from 'react-slot-fill';
 import 'element-closest';
@@ -74,6 +74,7 @@ export default class Editable extends wp.element.Component {
 			toolbar: false,
 			browser_spellcheck: true,
 			entity_encoding: 'raw',
+			convert_urls: false,
 			setup: this.onSetup,
 			formats: {
 				strikethrough: { inline: 'del' }
@@ -314,7 +315,11 @@ export default class Editable extends wp.element.Component {
 		forEach( formats, ( formatValue, format ) => {
 			if ( format === 'link' ) {
 				if ( formatValue !== undefined ) {
-					this.editor.execCommand( 'mceInsertLink', true, formatValue.value );
+					const anchor = this.editor.dom.getParent( this.editor.selection.getNode(), 'a' );
+					if ( ! anchor ) {
+						this.editor.formatter.remove( 'link' );
+					}
+					this.editor.formatter.apply( 'link', { href: formatValue.value }, anchor );
 				} else {
 					this.editor.execCommand( 'Unlink' );
 				}
@@ -326,6 +331,10 @@ export default class Editable extends wp.element.Component {
 					this.editor.formatter.apply( format );
 				}
 			}
+		} );
+
+		this.setState( {
+			formats: merge( this.state.formats, formats )
 		} );
 	}
 
