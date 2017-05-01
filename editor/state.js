@@ -10,17 +10,32 @@ import { keyBy, last, omit, without } from 'lodash';
 import { combineUndoableReducers } from 'utils/undoable-reducer';
 
 /**
- * Reducer returning editor blocks state, an combined reducer of keys byUid,
- * order, where blocks are parsed from current HTML markup.
+ * Undoable reducer returning the editor post state, including blocks parsed
+ * from current HTML markup.
+ *
+ * Handles the following state keys:
+ *  - post: an object describing the current post, in the format used by the WP
+ *  REST API
+ *  - blocksByUid: post content blocks keyed by UID
+ *  - blockOrder: list of block UIDs in order
  *
  * @param  {Object} state  Current state
  * @param  {Object} action Dispatched action
  * @return {Object}        Updated state
  */
-export const blocks = combineUndoableReducers( {
-	byUid( state = {}, action ) {
+export const editor = combineUndoableReducers( {
+	post( state = {}, action ) {
 		switch ( action.type ) {
-			case 'REPLACE_BLOCKS':
+			case 'EDIT_POST':
+				return action.post || state;
+		}
+
+		return state;
+	},
+
+	blocksByUid( state = {}, action ) {
+		switch ( action.type ) {
+			case 'EDIT_POST':
 				return keyBy( action.blockNodes, 'uid' );
 
 			case 'UPDATE_BLOCK':
@@ -50,11 +65,12 @@ export const blocks = combineUndoableReducers( {
 
 		return state;
 	},
-	order( state = [], action ) {
+
+	blockOrder( state = [], action ) {
 		let index;
 		let swappedUid;
 		switch ( action.type ) {
-			case 'REPLACE_BLOCKS':
+			case 'EDIT_POST':
 				return action.blockNodes.map( ( { uid } ) => uid );
 
 			case 'INSERT_BLOCK':
@@ -97,7 +113,7 @@ export const blocks = combineUndoableReducers( {
 
 		return state;
 	}
-}, { resetTypes: [ 'REPLACE_BLOCKS' ] } );
+}, { resetTypes: [ 'EDIT_POST' ] } );
 
 /**
  * Reducer returning selected block state.
@@ -210,7 +226,7 @@ export function isSidebarOpened( state = false, action ) {
  */
 export function createReduxStore() {
 	const reducer = combineReducers( {
-		blocks,
+		editor,
 		selectedBlock,
 		hoveredBlock,
 		mode,

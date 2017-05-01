@@ -41,14 +41,14 @@ function TextEditor( { blocks, onChange } ) {
 
 export default connect(
 	( state ) => ( {
-		blocks: state.blocks.order.map( ( uid ) => (
-			state.blocks.byUid[ uid ]
+		blocks: state.editor.blockOrder.map( ( uid ) => (
+			state.editor.blocksByUid[ uid ]
 		) )
 	} ),
 	( dispatch ) => ( {
 		onChange( value ) {
 			dispatch( {
-				type: 'REPLACE_BLOCKS',
+				type: 'EDIT_POST',
 				blockNodes: wp.blocks.parse( value )
 			} );
 		}
