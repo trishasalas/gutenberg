@@ -11,15 +11,12 @@ import './style.scss';
 import Inserter from 'components/inserter';
 import VisualEditorBlock from './block';
 
-function VisualEditor( { blocks, blockOrder } ) {
+function VisualEditor( { blocks } ) {
 	return (
 		<div className="editor-visual-editor">
 			<div className="editor-visual-editor__blocks">
 				{ map( blocks, ( block, uid ) => (
-					<VisualEditorBlock
-						key={ uid }
-						uid={ uid }
-						order={ blockOrder.indexOf( uid ) } />
+					<VisualEditorBlock key={ uid } uid={ uid } />
 				) ) }
 			</div>
 			<Inserter />
@@ -28,6 +25,5 @@ function VisualEditor( { blocks, blockOrder } ) {
 }
 
 export default connect( ( state ) => ( {
-	blocks: state.blocks.byUid,
-	blockOrder: state.blocks.order
+	blocks: state.blocks.byUid
 } ) )( VisualEditor );
